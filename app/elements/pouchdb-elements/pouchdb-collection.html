@@ -1,0 +1,227 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="pouchdb-behavior.html">
+
+<!--
+### Overview
+
+`pouchdb-collection` maintains an Array of filtered and sorted objects from a
+PouchDB database. The produced Array can be iterated over in other elements such
+as `<template is="dom-repeat">`.
+
+Example:
+
+    <pouchdb-collection db-name="mydb"
+      key-prefix="dino-"
+      sort="name"
+      data="{{dinosaurs}}">
+    </pouchdb-collection>
+
+    <template is="dom-repeat" items="[[dinosaurs]]" as="dinosaur">
+      <h4>[[dinosaur.name]]</h4>
+      <span>Height: </span><span>[[dinosaur.height]]</span><span>m</span>
+    </template>
+
+### Filtering documents by key prefix
+
+A common performance pattern in PouchDB is to use key prefixes to distinguish
+between different types of document. For example, one might select all "dino"
+documents by seting `startkey` to the prefix and `endkey` to the prefix followed
+by a large unicode value:
+
+    <pouchdb-collection db-name="mydb"
+      startkey="dino-"
+      endkey="dino-&#xFFFF;"
+      data="{{data}}">
+    </pouchdb-collection>
+
+For convenience, the `key-prefix` attribute can be used to accomplish the same
+thing:
+
+    <pouchdb-collection db-name="mydb" data="{{data}}" key-prefix="dino-">
+
+*Note*: `key-prefix` has no effect when used together with either the `startkey`
+or `endkey` attributes.
+
+
+### Using selectors
+
+A selector is a JSON object with fields as keys and a match object as
+the value. For example, to select objects where the "order" field is
+"ornithischia":
+
+     {order: 'ornithischia'}
+
+To get all documents where "height" is greater than 3:
+
+     {height: {$gt: 3}}
+
+The following selector operators are available:
+
+  - $lt: Match fields "less than" this one.
+  - $gt: Match fields "greater than" this one.
+  - $lte: Match fields "less than or equal to" this one.
+  - $gte: Match fields "greater than or equal to" this one.
+  - $eq: Match fields equal to this one.
+  - $ne: Match fields not equal to this one.
+  - $exists: True if the field should exist, false otherwise.
+
+The selector property can be expressed as a JSON string in the element
+attribute (note: this must use valid JSON quoting):
+
+    <pouchdb-collection db-name="mydb"
+      selector='{"height": {"$gt": 3}}'
+      data="{{data}}"></pouchdb-collection>
+
+It can also be bound to a javascript object:
+
+    <pouchdb-collection db-name="mydb"
+      selector="{{selector}}"
+      data="{{data}}">
+
+
+### Performance considerations
+
+In most situations, you'll almost always get better perfomance when using the
+document id (aka key) to filter results. When possible, use prefixes to
+distinguish between document types.
+
+For pagination, the `limit` and `skip` attributes are also available, but the
+same performance concerns as in CouchDB apply. Instead, use `startkey` and
+`endkey` to limit results to a given range.
+-->
+
+<script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'pouchdb-collection',
+
+      behaviors: [
+        Polymer.PouchdbBehavior
+      ],
+
+      properties: {
+        keyPrefix: {
+          type: String,
+          value: null
+        },
+        startKey: {
+          type: String,
+          value: null
+        },
+        endKey: {
+          type: String,
+          value: null
+        },
+        data: {
+          type: Array,
+          readOnly: true,
+          notify: true,
+          value: function() {
+            return [];
+          }
+        },
+        idFunc: {
+          type: Object,
+          value: function() {
+            return function() {
+              var d = new Date();
+              return d.getTime();
+            }.bind(this);
+          }
+        },
+        _startkey: {
+          type: String,
+          computed: '_computeStartkey(keyPrefix, startKey, endKey)',
+        },
+        _endkey: {
+          type: String,
+          computed: '_computeEndkey(keyPrefix, startKey, endKey)',
+          value: null
+        },
+        _idMap: {
+          type: Object,
+          computed: '_computeIdMap(data.*)'
+        },
+      },
+
+      observers: [
+        '_updateResults(db, _startkey, _endkey)'
+      ],
+
+      listeners: {
+        'pouchdb-update': '_onPouchUpdate',
+        'pouchdb-delete': '_updateResults',
+        'pouchdb-create': '_updateResults'
+      },
+
+      add: function(data, id) {
+        id = id || (this.keyPrefix || '') + this.idFunc();
+        return this.db.put(data, id).then(function() {
+          return this._updateResults();
+        }.bind(this)).then(function() {
+          return id;
+        });
+      },
+
+      remove: function(doc) {
+        return this.db.remove(doc._id, doc._rev).then(function() {
+          return this._updateResults();
+        }.bind(this));
+      },
+
+      _computeStartkey: function(keyPrefix, startkey, endkey) {
+        if (startkey || endkey) {
+          // keyPrefix should have no effect if startkey or endkey are used
+          return startkey;
+        }
+        return keyPrefix;
+      },
+
+      _computeEndkey: function(keyPrefix, startkey, endkey) {
+        if (startkey || endkey) {
+          // keyPrefix should have no effect if startkey or endkey are used
+          return endkey;
+        }
+        return keyPrefix + '\uffff;';
+      },
+
+      _computeIdMap: function() {
+        // map of docId to index in local data array;
+        var map = {};
+        for (var i = 0; i < this.data.length; i++) {
+          map[this.data[i].id] = i;
+        }
+        return map;
+      },
+
+      _onPouchUpdate: function(event) {
+        var docId = event.detail.id;
+        //this._log(event.type, event.detail);
+        this.db.get(docId).then(function(data) {
+          this.set('data.' + this._idMap[docId] + '.doc', data);
+        }.bind(this));
+      },
+
+      _updateResults: function() {
+        // TODO: there is probably a more performant way to do this using change events, but this
+        // is also less prone to bugs.
+        var opts = {
+          /*jshint camelcase: false */
+          include_docs: true,
+          attachments: false,
+          startkey: this._startkey,
+          endkey: this._endkey,
+        };
+        return this.db.allDocs(opts).then(function(result) {
+          this._setData(result.rows);
+          if (!this._loaded) {
+            this.fire('data-loaded', result, {bubbles: false});
+            this._loaded = true;
+          }
+        }.bind(this));
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,184 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import"
+      href="../../bower_components/vaadin-combo-box/vaadin-combo-box.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+
+<dom-module id="component-picker">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      div {
+        /* @formatter:off */
+        @apply(--layout-horizontal);
+        /* @formatter:on */
+      }
+
+      vaadin-combo-box, paper-input {
+        /* @formatter:off */
+        @apply(--layout-flex);
+        /* @formatter:off */
+      }
+
+      /*paper-icon-button.icon-button {
+        margin-top: 22px;
+      }*/
+
+      vaadin-combo-box /deep/ paper-input-container {
+        line-height: 1 !important;
+      }
+    </style>
+
+    <div>
+      <vaadin-combo-box id="comboBox"
+                        label="Component"
+                        hidden="{{_isCreateMode}}"
+                        items="{{_componentList}}"
+                        value="{{value}}">
+      </vaadin-combo-box>
+      <paper-input no-label-float="[[noLabelFloat]]"
+                   id="input"
+                   hidden="{{!_isCreateMode}}"
+                   label="Create new component"
+                   value="{{_intValue}}"
+                   on-blur="_createBlur">
+      </paper-input>
+      <paper-icon-button icon="{{_createButtonIcon}}"
+                         disabled="{{_createButtonDisabled}}"
+                         class="icon-button"
+                         on-tap="_createTapped">
+      </paper-icon-button>
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'component-picker',
+
+        properties: {
+          noLabelFloat: {
+            type: Boolean
+          },
+          value: {
+            type: String,
+            value: '',
+            notify: true,
+            observer: '_updateCreateButton'
+          },
+          state: {
+            type: Object,
+            notify: true,
+            observer: '_updateCreateButton'
+          },
+          _componentList: {
+            type: Array,
+            computed: '_getComponentList(state,state.*)',
+          },
+          _intValue: {
+            type: String,
+            value: '',
+            notify: true,
+            observer: '_updateIntValue'
+          },
+          _createButtonIcon: {
+            type: String,
+            value: 'add-circle-outline',
+            notify: true
+          },
+          _createButtonDisabled: {
+            type: String,
+            value: false,
+            notify: true
+          },
+          _isCreateMode: {
+            type: Boolean,
+            value: false,
+            notify: true,
+            observer: '_updateCreateButton'
+          }
+        },
+        _getComponentList: function(state) {
+          return Object.keys(state).filter(function(key) {
+            return key.charAt(0) === 'A';
+          }).map(function(key) {
+            return app.decode(key);
+          });
+        },
+        _updateIntValue: function() {
+          if (this._isCreateMode && this.state) {
+            if (this.state[app.encode(this._intValue)] >= 0) {
+              this.set('value', this._intValue);
+            } else {
+              this.set('value', '');
+            }
+          }
+          this._updateCreateButton();
+        },
+        _updateCreateButton: function() {
+          if (this._isCreateMode) {
+            if (this.state && this.state[app.encode(this._intValue)] >= 0) {
+              this.set('_createButtonIcon', '');
+              this.set('_createButtonDisabled', true);
+            } else if (!this._intValue) {
+              this.set('_createButtonIcon', 'highlight-off');
+              this.set('_createButtonDisabled', false);
+            } else {
+              this.set('_createButtonIcon', 'add-circle');
+              this.set('_createButtonDisabled', false);
+            }
+          } else {
+            if (this.state && this.state[app.encode(this.value)] >= 0) {
+              this.set('_createButtonIcon', '');
+              this.set('_createButtonDisabled', true);
+            } else if (!this.value) {
+              this.set('_createButtonIcon', 'add-circle-outline');
+              this.set('_createButtonDisabled', false);
+            } else {
+              this.set('_createButtonIcon', '');
+              this.set('_createButtonDisabled', true);
+            }
+          }
+        },
+        _createBlur: function() {
+          if (this._isCreateMode && this.state[app.encode(this._intValue)]) {
+            this.set('value', this._intValue);
+            this.set('_isCreateMode', false);
+          }
+        },
+        _createTapped: function() {
+          if (this._isCreateMode) {
+            this.set('_isCreateMode', false);
+            if (!this.state[app.encode(this._intValue)] && this._intValue) {
+              this.set('state.' + app.encode(this._intValue), {});
+              this.set('value', this._intValue);
+            }
+            this.$.comboBox.$.input.focus();
+          } else {
+            this.set('_isCreateMode', true);
+            this.set('_intValue', '');
+            this.$.input.$.input.focus();
+          }
+        },
+        ready: function() {
+          this.$.comboBox.$.inputContainer.set('noLabelFloat', this.noLabelFloat);
+        }
+      });
+    })();
+  </script>
+</dom-module>

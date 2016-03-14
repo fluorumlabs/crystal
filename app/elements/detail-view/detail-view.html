@@ -1,0 +1,208 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import"
+      href="../../bower_components/vaadin-combo-box/vaadin-combo-box.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+
+<dom-module id="detail-view">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      paper-dialog {
+        width: 400px;
+      }
+    </style>
+
+    <paper-dialog id="dialog" modal>
+      <h2>Test</h2>
+      <vaadin-combo-box class="flex"
+                        value="{{item.componentName}}"
+                        items="{{_componentList}}"
+                        state="{{state}}"
+                        hidden="[[!showComponentName]]"></vaadin-combo-box>
+      <paper-input class="flex" type="number"
+                   disabled="[[!item.componentName]]"
+                   hidden="[[!showQty]]"
+                   label="Quantity"
+                   value="{{item.qty}}"></paper-input>
+      <paper-input class="flex" type="number" disabled$="[[!item.qty]]"
+                   label="Price"
+                   hidden="[[!showUnitPrice]]"
+                   value="{{item.unitPrice}}"></paper-input>
+      <paper-input class="flex" type="number" disabled$="[[!item.qty]]"
+                   label="Total"
+                   hidden="[[!showTotalPrice]]"
+                   value="{{item.totalPrice}}"></paper-input>
+      <paper-input class="flex" type="number" disabled$="[[!item.qty]]"
+                   label="Received Quantity"
+                   hidden="[[!showQtyActual]]"
+                   value="{{item.qtyActual}}"></paper-input>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button dialog-confirm>Accept</paper-button>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'detail-view',
+
+        properties: {
+          item: {
+            type: Object,
+            notify: true
+          },
+          document: {
+            type: Object,
+            notify: true
+          },
+          state: {
+            type: Object,
+            notify: true
+          },
+          components: {
+            type: Array,
+            notify: true
+          },
+          _componentList: {
+            type: Array,
+            computed: '_getComponentList(state,state.*)',
+          },
+          showComponentName: {
+            type: Boolean,
+            notify: true
+          },
+          showQty: {
+            type: Boolean,
+            notify: true
+          },
+          showUnitPrice: {
+            type: Boolean,
+            notify: true
+          },
+          showTotalPrice: {
+            type: Boolean,
+            notify: true
+          },
+          showQtyActual: {
+            type: Boolean,
+            notify: true
+          }
+        },
+        observers: [
+          'notifyOwner(item.*)',
+          'notifyDocument(document.type,document.stage)'
+        ],
+        editItem: function() {
+          this.$.dialog.open();
+        },
+        _getComponentList: function(state) {
+          return Object.keys(state).filter(function(key) {
+            return key.charAt(0) === 'A';
+          }).map(function(key) {
+            return app.decode(key);
+          });
+        },
+        notifyDocument: function(type, stage) {
+          if (type === 'purchase') {
+            if (stage === 'draft') {
+              this.set('showComponentName', true);
+              this.set('showQty', true);
+              this.set('showUnitPrice', true);
+              this.set('showTotalPrice', true);
+              this.set('showQtyActual', false);
+            }
+            if (stage === 'placed') {
+              this.set('showComponentName', false);
+              this.set('showQty', false);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', true);
+            }
+            if (stage === 'received') {
+              this.set('showComponentName', false);
+              this.set('showQty', false);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+          }
+          if (type === 'build') {
+            if (stage === 'draft') {
+              this.set('showComponentName', true);
+              this.set('showQty', true);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+            if (stage === 'ready') {
+              this.set('showComponentName', false);
+              this.set('showQty', false);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+            if (stage === 'finished') {
+              this.set('showComponentName', false);
+              this.set('showQty', false);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+          }
+          if (type === 'sale') {
+            if (stage === 'draft') {
+              this.set('showComponentName', true);
+              this.set('showQty', true);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+            if (stage === 'accepted') {
+              this.set('showComponentName', false);
+              this.set('showQty', false);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+            if (stage === 'shipped') {
+              this.set('showComponentName', false);
+              this.set('showQty', false);
+              this.set('showUnitPrice', false);
+              this.set('showTotalPrice', false);
+              this.set('showQtyActual', false);
+            }
+          }
+        },
+        notifyOwner: function() {
+          /*if (args.path !== 'item') {
+           var ix = this.document.items.indexOf(this.item);
+           if (ix >= 0 && args.path.indexOf('.' > 0)) {
+           var token = args.path.replace('item', 'document.items.' + ix);
+           console.log(token + '=' + args.value);
+           this.set(token, args.value);
+           }
+           }*/
+        }
+      });
+    })();
+  </script>
+</dom-module>

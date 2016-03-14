@@ -1,0 +1,196 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/iron-list/iron-list.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import"
+      href="../../bower_components/paper-item/paper-item-body.html">
+<link rel="import"
+      href="../../bower_components/paper-item/paper-icon-item.html">
+
+<dom-module id="document-list">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+
+      .avatar {
+        display: inline-block;
+        box-sizing: border-box;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+      }
+
+      .avatar iron-icon {
+        left: 8px;
+        top: 8px;
+      }
+
+      .blue {
+        background-color: var(--paper-light-blue-300);
+        color: white;
+      }
+
+      .red {
+        background-color: var(--paper-red-500);
+        color: white;
+      }
+
+      .green {
+        background-color: var(--paper-green-500);
+        color: white;
+      }
+
+      .orange {
+        background-color: var(--paper-orange-500);
+        color: white;
+      }
+
+      .gray {
+        background-color: #ccc;
+        color: #888;
+      }
+
+      .paper-item-link {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      paper-icon-item {
+        border-bottom: 1px solid #DDD;
+      }
+
+      paper-icon-item:hover {
+        background-color: #ddd;
+      }
+    </style>
+
+    <template is="dom-repeat" items="[[documents]]" sort="sortFunc"
+              observe="doc.dateStatusChange">
+      <a data-route$="document-view-[[item.id]]"
+         href="{{baseUrl}}document/{{item.id}}"
+         class="paper-item-link">
+        <paper-icon-item>
+          <div class$="[[getStyle(item,item.doc.stage,state.*)]]" item-icon>
+            <iron-icon icon="[[getIcon(item,item.doc.stage)]]"></iron-icon>
+          </div>
+          <paper-item-body two-line>
+            <div>[[getTitle(item,item.doc.name)]]</div>
+            <div secondary>[[getDate(item,item.doc.dateStatusChange)]]</div>
+          </paper-item-body>
+        </paper-icon-item>
+      </a>
+    </template>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'document-list',
+
+        properties: {
+          documents: {
+            type: Object,
+            notify: true
+          },
+          state: {
+            type: Object,
+            notify: true
+          }
+        },
+        sortFunc: function(item1, item2) {
+          return (item2.doc.dateDraft || 0) - (item1.doc.dateDraft || 0);
+        },
+        getTitle: function(item) {
+          return item.doc.name ? item.doc.name : 'Untitled';
+        },
+        getDate: function(item) {
+          return item.doc.dateDraft ?
+            moment(item.doc.dateDraft).format('MMMM Do YYYY') : '';
+        },
+        getIcon: function(item) {
+          if (item.doc.stage === 'draft') {
+            return 'subject';
+          } else if (item.doc.stage === 'ready') {
+            return 'build';
+          } else if (item.doc.stage === 'placed') {
+            return 'shopping-cart';
+          } else if (item.doc.stage === 'accepted') {
+            return 'assignment';
+          } else if (item.doc.stage === 'received' ||
+            item.doc.stage === 'finished' || item.doc.stage === 'completed') {
+            return 'check';
+          }
+        },
+        getStyle: function(item) {
+          if (item.doc.stage === 'draft') {
+            return 'avatar';
+          }
+          if (item.doc.stage === 'placed') {
+            return 'avatar blue';
+          }
+          if (item.doc.stage === 'ready' || item.doc.stage === 'accepted') {
+            // Go through items
+            var full = false;
+            var partial = false;
+            var missing = false;
+            var waiting = false;
+
+            item.doc.items.forEach(function(component) {
+              if (!component) {
+                missing = true;
+              } else {
+                var c = app.encode(component.componentName);
+                var stocked = 0;
+                var pending = 0;
+                var needed = 0;
+                var _qty = Number(component.qty);
+                if (this.state[c] && (this.state[c].stocked > 0)) {
+                  stocked = Number(this.state[c].stocked);
+                }
+                if (this.state[c] && (this.state[c].building > 0 || this.state[c].ordered > 0)) {
+                  pending = Number(this.state[c].building || 0) + Number(this.state[c].ordered || 0);
+                }
+                if (this.state[c] && (this.state[c].needed > 0)) {
+                  needed = Number(this.state[c].needed);
+                }
+                if (needed <= stocked) {
+                  full = true;
+                } else if (needed > stocked && _qty <= stocked) {
+                  partial = true;
+                } else if (needed <= stocked + pending) {
+                  waiting = true;
+                } else {
+                  missing = true;
+                }
+              }
+            }, this);
+            if (missing) {
+              return 'avatar red';
+            } else if (waiting) {
+              return 'avatar blue';
+            } else if (partial) {
+              return 'avatar orange';
+            } else if (full) {
+              return 'avatar green';
+            }
+          }
+          return 'avatar gray';
+        }
+      });
+    })();
+  </script>
+</dom-module>

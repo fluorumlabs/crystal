@@ -1,0 +1,1675 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import"
+      href="../../bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import"
+      href="../../bower_components/vaadin-combo-box/vaadin-combo-box.html">
+
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import"
+      href="../../bower_components/paper-date-picker/paper-date-picker.html">
+<link rel="import"
+      href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
+<link rel="import"
+      href="../../bower_components/iron-a11y-keys/iron-a11y-keys.html">
+
+<link rel="import"
+      href="../../bower_components/moment-element/moment-with-locales-import.html">
+
+<dom-module id="document-view">
+  <template>
+    <style include="paper-date-picker-dialog-style shared-styles">
+      :host {
+        display: block;
+      }
+
+      .item {
+        /* @formatter:off */
+        @apply(--layout-horizontal);
+        /* @formatter:on */
+        padding: 0 14px;
+        /*border-bottom: 1px solid #DDD;*/
+      }
+
+      .item-padded {
+        /* @formatter:off */
+        @apply(--layout-horizontal);
+        /* @formatter:on */
+        padding: 16px 14px;
+        /*border-bottom: 1px solid #DDD;*/
+      }
+
+      /*.item:hover {
+        background-color: var(--google-grey-100);
+      }*/
+      .item paper-input, .item paper-value, .item component-picker, .item div,
+      .item-padded paper-input, .item-padded paper-value, .item-padded component-picker, .item-padded div {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .separator-bottom {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+      }
+
+      paper-input paper-icon-button, paper-icon-button.inline {
+        height: 24px;
+        width: 24px;
+        padding: 0;
+        margin-bottom: 3px;
+      }
+
+      vaadin-combo-box /deep/ paper-input-container {
+        line-height: 1 !important;
+      }
+
+      /* @formatter:off */
+      paper-input.no-underline {
+        --paper-input-container-underline: {
+          display: none;
+        };
+      }
+      /* @formatter:on */
+
+      paper-input.no-underline /deep/ paper-input-container[disabled] {
+        opacity: 1 !important;
+      }
+
+      paper-input.no-underline /deep/ input[disabled] {
+        color: black;
+      }
+
+      .paper-value {
+        line-height: 44px;
+      }
+
+      .flex3child {
+        /* @formatter:off */
+        @apply(--layout-flex-3);
+        /* @formatter:on */
+      }
+
+      paper-card {
+        width: 100%;
+      }
+
+      .card-actions paper-button {
+        padding: 0.2em 0.5em;
+        font-size: 14px;
+      }
+
+      iron-icon.icon-green {
+        color: var(--paper-green-500);
+      }
+
+      iron-icon.icon-red {
+        color: var(--paper-red-500);
+      }
+
+      iron-icon.icon-yellow {
+        color: var(--paper-yellow-600);
+      }
+
+      paper-button.red {
+        background-color: var(--paper-red-500);
+        color: white;
+      }
+
+      paper-button.blue {
+        background-color: var(--paper-blue-500);
+        color: white;
+      }
+
+      paper-button.green {
+        background-color: var(--paper-green-700);
+        color: white;
+      }
+
+      vaadin-grid {
+        border-top: 1px solid #e8e8e8;
+        height: 100%;
+      }
+
+      vaadin-grid /deep/ tr.row-orange {
+        color: var(--paper-orange-700);
+      }
+
+      vaadin-grid /deep/ tr.row-red {
+        color: var(--paper-red-700);
+      }
+
+      vaadin-grid /deep/ tr.row-blue {
+        color: var(--paper-blue-700);
+      }
+
+      .footerData {
+        display: none;
+      }
+
+      vaadin-grid /deep/ .footerData {
+        display: inline;
+      }
+
+      vaadin-grid /deep/ .vaadin-grid-tablewrapper {
+        background-color: #fafafa;
+      }
+    </style>
+
+    <!-- Card -->
+    <paper-card elevation="0" class="flex layout vertical">
+      <div class="card-content item-padded layout horizontal">
+        <paper-input label="[[labelFormat(document.type, 'title')]]"
+                     class="flex3child"
+                     value="{{document.name}}"
+                     readonly="{{documentIs(document.type,'purchase|build|sale',document.stage,'received|finished|completed')}}">
+        </paper-input>
+        <paper-input label="Build Component"
+                     class="flex3child"
+                     value="{{document.componentName}}"
+                     readonly
+                     hidden="{{documentIs(document.type,'purchase|build|sale',document.stage,'draft|placed|received|accepted|completed')}}">
+        </paper-input>
+        <vaadin-combo-box class="flex3child"
+                          value="{{document.componentName}}"
+                          items="{{_componentList}}"
+                          state="{{state}}"
+                          label="Build Component"
+                          readonly="{{neq(document.stage,'draft')}}"
+                          allow-custom-value
+                          hidden="{{documentNot(document.type,'build',document.stage,'draft')}}"></vaadin-combo-box>
+        <paper-input class="flex" type="number" label="Payed amount"
+                     value="{{document.totalPayed}}"
+                     disabled="{{eq(document.stage,'draft')}}"
+                     readonly="{{eq(document.stage,'received')}}"
+                     hidden="{{neq(document.type,'purchase')}}"></paper-input>
+        <paper-input class="flex" type="number" label="Shipping cost"
+                     value="{{document.shippingCost}}"
+                     disabled="{{eq(document.stage,'draft')}}"
+                     readonly="{{eq(document.stage,'completed')}}"
+                     hidden="{{neq(document.type,'sale')}}">
+        </paper-input>
+        <paper-input class="flex" type="number" label="Payed amount"
+                     value="{{document.totalPayed}}"
+                     disabled="{{eq(document.stage,'draft')}}"
+                     readonly="{{eq(document.stage,'completed')}}"
+                     hidden="{{neq(document.type,'sale')}}">
+        </paper-input>
+
+      </div>
+
+
+      <!-- Purchase -->
+      <template is="dom-if" if="{{eq(document.type,'purchase')}}">
+        <div class="card-actions item-padded layout horizontal">
+          <paper-button hidden="{{neq(document.stage,'draft')}}"
+                        disabled="{{neq(document.stage,'draft')}}"
+                        on-tap="_delete"
+                        class$="{{eqString(document.stage,'draft','red','')}}">
+            <iron-icon icon="delete"></iron-icon>
+            Delete
+          </paper-button>
+          <paper-button hidden="{{eq(document.stage,'draft')}}"
+                        disabled="{{neq(document.stage,'placed')}}"
+                        on-tap="proceedToDraft">
+            <iron-icon icon="content-paste"></iron-icon>
+            Draft
+          </paper-button>
+          <paper-button
+            disabled="{{disablePlace(document,document.*,state,state.*)}}"
+            class$="{{eqString(document.stage,'placed','blue','')}}"
+            on-tap="proceedToPlaced">
+            <iron-icon icon="shopping-cart"></iron-icon>
+            Placed
+          </paper-button>
+          <paper-button
+            disabled="{{disableReceive(document,document.*,state,state.*)}}"
+            class$="{{eqString(document.stage,'received','green','')}}"
+            on-tap="proceedToReceived">
+            <iron-icon icon="check"></iron-icon>
+            Received
+          </paper-button>
+          <div class="flex"></div>
+          <paper-button hidden="[[!dirty]]" on-tap="_cancel">
+            <iron-icon icon="clear"></iron-icon>
+            Cancel
+          </paper-button>
+          <paper-button hidden="[[!dirty]]" class="red" on-tap="_save">
+            <iron-icon icon="check"></iron-icon>
+            Save
+          </paper-button>
+          <paper-button hidden="[[!wasDirty]]" class="green" disabled>
+            <iron-icon icon="check"></iron-icon>
+            Saved
+          </paper-button>
+        </div>
+      </template>
+
+      <!-- Build -->
+      <template is="dom-if" if="{{eq(document.type,'build')}}">
+
+        <div class="card-actions item-padded layout horizontal">
+          <paper-button hidden="{{neq(document.stage,'draft')}}"
+                        disabled="{{neq(document.stage,'draft')}}"
+                        on-tap="_delete"
+                        class$="{{eqString(document.stage,'draft','red','')}}">
+            <iron-icon icon="delete"></iron-icon>
+            Delete
+          </paper-button>
+          <paper-button hidden="{{eq(document.stage,'draft')}}"
+                        disabled="{{neq(document.stage,'ready')}}"
+                        on-tap="proceedToDraft">
+            <iron-icon icon="content-paste"></iron-icon>
+            Draft
+          </paper-button>
+          <paper-button
+            disabled="{{disableReady(document,document.*,state,state.*)}}"
+            class$="{{eqString(document.stage,'ready','blue','')}}"
+            on-tap="proceedToReady">
+            <iron-icon icon="build"></iron-icon>
+            Ready
+          </paper-button>
+          <paper-button
+            disabled="{{disableFinished(document,document.*,state,state.*)}}"
+            class$="{{eqString(document.stage,'finished','green','')}}"
+            on-tap="proceedToFinished">
+            <iron-icon icon="check"></iron-icon>
+            Finished
+          </paper-button>
+          <div class="flex"></div>
+          <paper-button hidden="[[dirty]]" on-tap="cloneBuild">
+            <iron-icon icon="content-copy"></iron-icon>
+            Duplicate
+          </paper-button>
+          <paper-button hidden="[[!dirty]]" on-tap="_cancel">
+            <iron-icon icon="clear"></iron-icon>
+            Cancel
+          </paper-button>
+          <paper-button hidden="[[!dirty]]" class="red" on-tap="_save">
+            <iron-icon icon="check"></iron-icon>
+            Save
+          </paper-button>
+          <paper-button hidden="[[!wasDirty]]" class="green" disabled>
+            <iron-icon icon="check"></iron-icon>
+            Saved
+          </paper-button>
+        </div>
+      </template>
+
+      <!-- Sale -->
+      <template is="dom-if" if="{{eq(document.type,'sale')}}">
+        <div class="card-actions item-padded layout horizontal">
+          <paper-button hidden="{{neq(document.stage,'draft')}}"
+                        disabled="{{neq(document.stage,'draft')}}"
+                        on-tap="_delete"
+                        class$="{{eqString(document.stage,'draft','red','')}}">
+            <iron-icon icon="delete"></iron-icon>
+            Delete
+          </paper-button>
+          <paper-button hidden="{{eq(document.stage,'draft')}}"
+                        disabled="{{neq(document.stage,'accepted')}}"
+                        on-tap="proceedToDraft">
+            <iron-icon icon="content-paste"></iron-icon>
+            Draft
+          </paper-button>
+          <paper-button
+            disabled="{{disableAccepted(document,document.*,state,state.*)}}"
+            class$="{{eqString(document.stage,'accepted','blue','')}}"
+            on-tap="proceedToAccepted">
+            <iron-icon icon="build"></iron-icon>
+            Accepted
+          </paper-button>
+          <paper-button
+            disabled="{{disableCompleted(document,document.*,state,state.*)}}"
+            class$="{{eqString(document.stage,'completed','green','')}}"
+            on-tap="proceedToCompleted">
+            <iron-icon icon="check"></iron-icon>
+            Completed
+          </paper-button>
+          <div class="flex"></div>
+          <paper-button hidden="[[!dirty]]" on-tap="_cancel">
+            <iron-icon icon="clear"></iron-icon>
+            Cancel
+          </paper-button>
+          <paper-button hidden="[[!dirty]]" class="red" on-tap="_save">
+            <iron-icon icon="check"></iron-icon>
+            Save
+          </paper-button>
+          <paper-button hidden="[[!wasDirty]]" class="green" disabled>
+            <iron-icon icon="check"></iron-icon>
+            Saved
+          </paper-button>
+        </div>
+      </template>
+      <div class="card-actions item-padded layout horizontal">
+
+        <paper-input label="Filter" class="flex" no-label-float
+                     value="{{filterValue}}"></paper-input>
+
+        <poly-filter id="filterer"
+                     filter="[[filterValue]]"
+                     array-to-filter="[[_itemList]]"
+                     filtered-array="{{filteredComponentList}}"
+                     filter-by="componentName">
+        </poly-filter>
+      </div>
+
+      <vaadin-grid class="flex" id="grid" items="[[filteredComponentList]]"
+                   on-selected-items-changed="gridItemSelect"
+                   frozen-columns="1">
+        <table>
+          <colgroup>
+            <col name="componentName">
+          </colgroup>
+        </table>
+      </vaadin-grid>
+
+      <span class="footerData" id="footerLabel">Total:</span>
+      <span class="footerData" id="footerTotalQty">[[countTotalsFmt('qty',0,document,document.items.*)]]</span>
+      <span class="footerData" id="footerTotalQtyActual">[[countTotalsFmt('qtyActual',0,document,document.items.*)]]</span>
+      <span class="footerData" id="footerTotalPrice">[[countTotalsFmt('price',2,document,document.items.*)]]</span>
+      <span class="footerData" id="footerTotalPriceActual">[[countTotalsFmt('priceActual',2,document,document.items.*)]]</span>
+      <span class="footerData" id="footerTotalPriceStock">[[countTotalsFmt('priceStock',2,document,document.items.*,state.*)]]</span>
+
+      <iron-a11y-keys id="a11y" target="[[editorElement]]" keys="enter"
+                      on-keys-pressed="onEnter"></iron-a11y-keys>
+      <iron-a11y-keys id="a11y" target="[[editorElement]]" keys="esc"
+                      on-keys-pressed="onEsc"></iron-a11y-keys>
+
+      <paper-dialog id="editor" modal on-opened-changed="editorOpened">
+        <h2>
+          Component: {{editingItem.componentName}}
+        </h2>
+
+        <div hidden$="[[!editingItem.vendor]]" class="vertical layout">
+          <div>[[editingItem.vendor.type]]:
+            <strong>[[editingItem.vendor.key]]</strong></div>
+          <div hidden$="[[!editingItem.vendor.part]]">Part: <strong>[[editingItem.vendor.part]]</strong>
+          </div>
+          <div hidden$="[[!editingItem.vendor.description]]">Description:
+            <strong>[[editingItem.vendor.description]]</strong>
+          </div>
+        </div>
+
+        <div hidden$="[[!editingItem.eagle]]" class="vertical layout">
+          <div>RefDes: <strong>[[editingItem.eagle.refDes]]</strong></div>
+          <div>Library: <strong>[[editingItem.eagle.library]]</strong></div>
+          <div>Value: <strong>[[editingItem.eagle.value]]</strong></div>
+          <div>Package: <strong>[[editingItem.eagle.pkg]]</strong></div>
+        </div>
+        <div hidden$="{{neq(document.stage,'draft')}}"
+             class="layout horizontal">
+          <paper-button on-tap="generateEagleName"
+                        hidden$="[[!editingItem.eagle]]"
+                        class$="{{eqString(editingItem.componentName,'','blue','')}}"
+                        disabled="{{neq(editingItem.componentName,'')}}">
+            Generate name
+          </paper-button>
+          <paper-button class="red" hidden$="[[!editingItem.eagle]]"
+                        on-tap="deleteRowTap">
+            Delete
+          </paper-button>
+          <paper-button class="red" hidden$="[[!editingItem.vendor]]"
+                        on-tap="deleteRowTap">
+            Delete
+          </paper-button>
+        </div>
+        <div hidden$="{{neq(document.stage,'draft')}}"
+             class="flex vertical layout">
+          <div>Stocked:
+            <strong>{{getStocked(editingItem.componentName)}}</strong></div>
+          <div>Needed: <strong>{{getNeeded(editingItem.componentName)}}</strong>
+          </div>
+        </div>
+        <div hidden$="{{eq(document.stage,'draft')}}"
+             class="flex vertical layout">
+          <div>Quantity: <strong>{{editingItem.qty}}</strong></div>
+          <div hidden$="{{neq(document.stage,'received')}}">Received Quantity:
+            <strong>{{editingItem.qtyActual}}</strong></div>
+        </div>
+        <vaadin-combo-box id="editComponentName" class="flex"
+                          value="{{editingItem.componentName}}"
+                          items="{{_componentList}}"
+                          state="{{state}}" allow-custom-value
+                          hidden$="{{neq(document.stage,'draft')}}"
+                          label="Component"></vaadin-combo-box>
+        <paper-input id="editQty" class="flex" type="number"
+                     disabled="[[!editingItem.componentName]]"
+                     label="Quantity"
+                     hidden$="{{neq(document.stage,'draft')}}"
+                     value="{{editingItem.qty}}"></paper-input>
+        <paper-input id="editUnitPrice" class="flex" type="number"
+                     disabled$="[[!editingItem.qty]]"
+                     label="Unit Price"
+                     hidden$="{{documentNot(document.type,'purchase',document.stage,'draft')}}"
+                     value="{{editingItem.unitPrice}}"></paper-input>
+        <paper-input id="editTotalPrice" class="flex" type="number"
+                     disabled$="[[!editingItem.qty]]"
+                     label="Total Price"
+                     hidden$="{{documentNot(document.type,'purchase',document.stage,'draft')}}"
+                     value="{{editingItem.totalPrice}}"></paper-input>
+        <paper-input id="editQtyActual" class="flex" type="number"
+                     disabled$="[[!editingItem.qty]]"
+                     label="Received Quantity"
+                     hidden$="{{documentNot(document.type,'purchase',document.stage,'placed')}}"
+                     value="{{editingItem.qtyActual}}"></paper-input>
+        <div class="buttons">
+          <paper-button id="cancelButton" dialog-dismiss>Cancel</paper-button>
+          <paper-button id="acceptButton" dialog-confirm>Accept</paper-button>
+        </div>
+      </paper-dialog>
+
+    </paper-card>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'document-view',
+
+        properties: {
+          filterValue: {
+            type: String,
+            notify: true
+          },
+          dirty: {
+            type: Boolean,
+            notify: true
+          },
+          wasDirty: {
+            type: Boolean,
+            notify: true
+          },
+          state: {
+            type: Object,
+            notify: true
+          },
+          components: {
+            type: Array,
+            notify: true
+          },
+          document: {
+            type: Object,
+            notify: true
+          },
+          editingItem: {
+            type: Object,
+            notify: true
+          },
+          item: {
+            type: Object,
+            notify: true
+          },
+          _componentList: {
+            type: Array,
+            computed: '_getComponentList(state,state.*)',
+          },
+          _itemList: {
+            type: Array,
+            computed: '_getItemList(document,document.items.*,state,state.*,reloadMark)'
+          },
+          selectedRow: {
+            type: Number,
+            value: 0
+          },
+          reloadMark: {
+            type: Boolean,
+            value: true
+          },
+          editorElement: {
+            type: Object,
+            value: function() {
+              return this.$.editor;
+            }
+          }
+        },
+
+        observers: [
+          'trackGridUpdate(filteredComponentList)',
+          'trackItemList(_itemList)',
+          'trackDocumentStage(document.type,document.stage)',
+          'trackEditingItemValues(document,editingItem.*)',
+          'trackItemValues(document,document.items.*)',
+          'trackComponentName(state,document.componentName)'
+        ],
+        trackGridUpdate: function() {
+          if (this.$.editor.opened) {
+            this.focusFirst();
+          }
+        },
+        trackItemList: function() {
+          this.$.grid.refreshItems();
+        },
+        cloneBuild: function() {
+          app.cloneBuild(this.document);
+        },
+        _getItemList: function(document) {
+          return document.items.map(function(obj, ix) {
+            var component = this.state[app.encode(obj.componentName)] || {};
+            var needed = Number(component.needed || 0) - Number(component.ordered || 0) -
+              Number(component.stocked || 0);
+            var available = Number(component.stocked || 0) - Number(component.needed || 0);
+            var totalPrice = Number(component.price || 0) * Number(obj.qty || 0);
+            return {
+              componentName: obj.componentName,
+              qty: obj.qty,
+              unitPrice: obj.unitPrice,
+              totalPrice: obj.totalPrice,
+              eagle: obj.eagle,
+              vendor: obj.vendor,
+              unitPriceActual: obj.unitPriceActual,
+              $totalPriceActual: obj.unitPriceActual * obj.qtyActual,
+              qtyActual: obj.qtyActual,
+              $stocked: component.stocked > 0 ? component.stocked : null,
+              $available: available > 0 ? available : null,
+              $availableActual: available,
+              $unitPriceStock: component.price > 0 ? component.price : null,
+              $totalPriceStock: totalPrice > 0 ? totalPrice : null,
+              $ordered: component.ordered > 0 ? component.ordered : null,
+              $building: component.building > 0 ? component.building : null,
+              $needed: needed > 0 ? needed : null,
+              $source: obj,
+              $sourceIx: ix
+            };
+          }, this);
+        },
+        countTotalsFmt: function(value, n) {
+          return app.formatPrice(this.countTotals(value), n);
+        },
+        countTotals: function(value) {
+          if (this.document && this.document.items) {
+            var qty = 0;
+            var qtyActual = 0;
+            var price = 0;
+            var priceActual = 0;
+            var priceStock = 0;
+            this.document.items.forEach(function(obj) {
+              var component = this.state[app.encode(obj.componentName)] || {};
+              qty = qty + Number(obj.qty || 0);
+              qtyActual = qtyActual + Number(obj.qtyActual || 0);
+              price = price + Number(obj.totalPrice || 0);
+              priceActual = priceActual + Number(obj.unitPriceActual || 0) * Number(obj.qtyActual || 0);
+              priceStock = priceStock + Number(component.price || 0) * Number(obj.qty || 0);
+            }, this);
+            if (value === 'qty') {
+              return qty > 0 ? qty : '';
+            } else if (value === 'qtyActual') {
+              return qtyActual > 0 ? qtyActual : '';
+            } else if (value === 'price') {
+              return price > 0 ? price : '';
+            } else if (value === 'priceActual') {
+              return priceActual > 0 ? priceActual : '';
+            } else if (value === 'priceStock') {
+              return priceStock > 0 ? priceStock : '';
+            }
+          }
+          return '';
+
+        },
+        _getComponentList: function(state) {
+          return Object.keys(state).filter(function(key) {
+            return key.charAt(0) === 'A';
+          }).map(function(key) {
+            return app.decode(key);
+          }).sort();
+        },
+        formatPriceValue: function(n) {
+          return app.formatPrice(n, 2);
+        },
+        formatPrice: function(cell) {
+          cell.element.innerHTML = app.formatPrice(cell.data, 2);
+        },
+        formatQty: function(cell) {
+          cell.element.innerHTML = app.formatPrice(cell.data, 0);
+        },
+        formatComponentName: function(cell) {
+          if (!cell.data) {
+            cell.element.innerHTML = '<em>&lt; Select Component &gt;</em>';
+            return;
+          }
+
+          var groups = cell.data.match(/([A-Za-z\/]+\s)+/g);
+          if (!groups) {
+            cell.element.innerHTML = cell.data;
+          } else {
+            var group = groups[0].trim();
+            var repeat = true;
+            if (cell.row.index > 0) {
+              if (!cell.row.grid.__data__.items[cell.row.index - 1].componentName) {
+                repeat = false;
+              } else {
+                var groupsPrev = cell.row.grid.__data__.items[cell.row.index - 1]
+                  .componentName.match(/([A-Za-z\/]+\s)+/g);
+                repeat = groupsPrev && groupsPrev[0].trim() === group;
+              }
+            } else {
+              repeat = false;
+            }
+            var component = cell.data.substring(groups[0].length);
+            if (repeat) {
+              cell.element.innerHTML =
+                '<strong style="opacity: 0">' +
+                group +
+                '</strong><span style="opacity:0">&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>' +
+                component;
+            } else {
+              cell.element.innerHTML =
+                '<strong>' +
+                group +
+                '</strong><span style="opacity:0.3">&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>' +
+                component;
+            }
+          }
+        },
+        trackDocumentStage: function(type, stage) {
+          if (type === 'purchase') {
+            if (stage === 'draft') {
+              this.$.grid.columns = [
+                {
+                  name: 'componentName',
+                  flex: true,
+                  renderer: this.formatComponentName
+                },
+                {name: '$needed', renderer: this.formatQty},
+                {name: 'qty', renderer: this.formatQty},
+                {name: 'unitPrice', renderer: this.formatPrice},
+                {name: 'totalPrice', renderer: this.formatPrice}
+              ];
+              this.$.grid.header.getCell(0, 0).content = 'Component';
+              this.$.grid.header.getCell(0, 1).content = 'Needed';
+              this.$.grid.header.getCell(0, 2).content = 'Quantity';
+              this.$.grid.header.getCell(0, 3).content = 'Unit Price';
+              this.$.grid.header.getCell(0, 4).content = 'Total Price';
+              this.$.grid.footer.getCell(0, 0).content = this.$.footerLabel;
+              this.$.grid.footer.getCell(0, 1).content = null;
+              this.$.grid.footer.getCell(0, 2).content = this.$.footerTotalQty;
+              this.$.grid.footer.getCell(0, 3).content = null;
+              this.$.grid.footer.getCell(0, 4).content = this.$.footerTotalPrice;
+            }
+            if (stage === 'placed') {
+              this.$.grid.columns = [
+                {
+                  name: 'componentName',
+                  flex: true,
+                  renderer: this.formatComponentName
+                },
+                {name: 'qty', renderer: this.formatQty},
+                {name: 'qtyActual', renderer: this.formatQty},
+                {name: 'unitPrice', renderer: this.formatPrice},
+                {name: 'totalPrice', renderer: this.formatPrice}
+              ];
+              this.$.grid.header.getCell(0, 0).content = 'Component';
+              this.$.grid.header.getCell(0, 1).content = 'Ordered';
+              this.$.grid.header.getCell(0, 2).content = 'Received';
+              this.$.grid.header.getCell(0, 3).content = 'Unit Price';
+              this.$.grid.header.getCell(0, 4).content = 'Total Price';
+              this.$.grid.footer.getCell(0, 0).content = this.$.footerLabel;
+              this.$.grid.footer.getCell(0, 1).content = this.$.footerTotalQty;
+              this.$.grid.footer.getCell(0, 2).content = this.$.footerTotalQtyActual;
+              this.$.grid.footer.getCell(0, 3).content = null;
+              this.$.grid.footer.getCell(0, 4).content = this.$.footerTotalPrice;
+            }
+            if (stage === 'received') {
+              this.$.grid.columns = [
+                {
+                  name: 'componentName',
+                  flex: true,
+                  renderer: this.formatComponentName
+                },
+                {name: 'qtyActual', renderer: this.formatQty},
+                {name: 'unitPriceActual', renderer: this.formatPrice},
+                {name: '$totalPriceActual', renderer: this.formatPrice}
+              ];
+              this.$.grid.header.getCell(0, 0).content = 'Component';
+              this.$.grid.header.getCell(0, 1).content = 'Received';
+              this.$.grid.header.getCell(0, 2).content = 'Unit Price';
+              this.$.grid.header.getCell(0, 3).content = 'Total Price';
+              this.$.grid.footer.getCell(0, 0).content = this.$.footerLabel;
+              this.$.grid.footer.getCell(0, 1).content = this.$.footerTotalQtyActual;
+              this.$.grid.footer.getCell(0, 2).content = null;
+              this.$.grid.footer.getCell(0, 3).content = this.$.footerTotalPriceActual;
+            }
+          }
+          if (type === 'build' || type === 'sale') {
+            if (stage === 'draft') {
+              this.$.grid.columns = [
+                {
+                  name: 'componentName',
+                  flex: true,
+                  renderer: this.formatComponentName
+                },
+                {name: 'qty', renderer: this.formatQty},
+                {name: '$available', renderer: this.formatQty},
+                {name: '$stocked', renderer: this.formatQty},
+                {name: '$unitPriceStock', renderer: this.formatPrice},
+                {name: '$totalPriceStock', renderer: this.formatPrice}
+              ];
+              this.$.grid.header.getCell(0, 0).content = 'Component';
+              this.$.grid.header.getCell(0, 1).content = 'Quantity';
+              this.$.grid.header.getCell(0, 2).content = 'Available';
+              this.$.grid.header.getCell(0, 3).content = 'Stocked';
+              this.$.grid.header.getCell(0, 4).content = 'Unit Price';
+              this.$.grid.header.getCell(0, 5).content = 'Total Price';
+              this.$.grid.footer.getCell(0, 0).content = this.$.footerLabel;
+              this.$.grid.footer.getCell(0, 1).content = this.$.footerTotalQty;
+              this.$.grid.footer.getCell(0, 2).content = null;
+              this.$.grid.footer.getCell(0, 3).content = null;
+              this.$.grid.footer.getCell(0, 4).content = null;
+              this.$.grid.footer.getCell(0, 5).content = this.$.footerTotalPriceStock;
+            }
+            if (stage === 'ready' || stage === 'accepted') {
+              this.$.grid.columns = [
+                {
+                  name: 'componentName',
+                  flex: true,
+                  renderer: this.formatComponentName
+                },
+                {name: 'qty', renderer: this.formatQty},
+                {name: '$stocked', renderer: this.formatQty},
+                {name: '$building', renderer: this.formatQty},
+                {name: '$ordered', renderer: this.formatQty},
+                {name: '$unitPriceStock', renderer: this.formatPrice},
+                {name: '$totalPriceStock', renderer: this.formatPrice}
+              ];
+              this.$.grid.header.getCell(0, 0).content = 'Component';
+              this.$.grid.header.getCell(0, 1).content = 'Quantity';
+              this.$.grid.header.getCell(0, 2).content = 'Stocked';
+              this.$.grid.header.getCell(0, 3).content = 'Building';
+              this.$.grid.header.getCell(0, 4).content = 'Ordered';
+              this.$.grid.header.getCell(0, 5).content = 'Unit Price';
+              this.$.grid.header.getCell(0, 6).content = 'Total Price';
+              this.$.grid.footer.getCell(0, 0).content = this.$.footerLabel;
+              this.$.grid.footer.getCell(0, 1).content = this.$.footerTotalQty;
+              this.$.grid.footer.getCell(0, 2).content = null;
+              this.$.grid.footer.getCell(0, 3).content = null;
+              this.$.grid.footer.getCell(0, 4).content = null;
+              this.$.grid.footer.getCell(0, 5).content = null;
+              this.$.grid.footer.getCell(0, 6).content = this.$.footerTotalPriceStock;
+            }
+            if (stage === 'finished' || stage === 'completed') {
+              this.$.grid.columns = [
+                {
+                  name: 'componentName',
+                  flex: true,
+                  renderer: this.formatComponentName
+                },
+                {name: 'qty', renderer: this.formatQty},
+                {name: 'unitPrice', renderer: this.formatPrice},
+                {name: 'totalPrice', renderer: this.formatPrice}
+              ];
+              this.$.grid.header.getCell(0, 0).content = 'Component';
+              this.$.grid.header.getCell(0, 1).content = 'Quantity';
+              this.$.grid.header.getCell(0, 2).content = 'Unit Price';
+              this.$.grid.header.getCell(0, 3).content = 'Total Price';
+              this.$.grid.footer.getCell(0, 0).content = this.$.footerLabel;
+              this.$.grid.footer.getCell(0, 1).content = this.$.footerTotalQty;
+              this.$.grid.footer.getCell(0, 2).content = null;
+              this.$.grid.footer.getCell(0, 3).content = this.$.footerTotalPrice;
+            }
+          }
+        },
+        trackDocument: function() {
+          if (this.document && this.document.items) {
+            // Set the data source
+            this.$.grid.items = function(params, callback) {
+              var array = this.document.items.slice(params.index,
+                params.index + params.count);
+              var cloned = array.map(function(obj, ix) {
+                var component = this.state[app.encode(obj.componentName)] || {};
+                var needed = Number(component.needed || 0) - Number(component.ordered || 0) -
+                  Number(component.stocked || 0);
+                var available = Number(component.stocked || 0) - Number(component.needed || 0);
+                var totalPrice = Number(component.price || 0) * Number(obj.qty || 0);
+                return {
+                  componentName: obj.componentName,
+                  qty: obj.qty,
+                  unitPrice: obj.unitPrice,
+                  totalPrice: obj.totalPrice,
+                  eagle: obj.eagle,
+                  vendor: obj.vendor,
+                  unitPriceActual: obj.unitPriceActual,
+                  $totalPriceActual: obj.unitPriceActual * obj.qtyActual,
+                  qtyActual: obj.qtyActual,
+                  $stocked: component.stocked > 0 ? component.stocked : null,
+                  $available: available > 0 ? available : null,
+                  $unitPriceStock: component.price > 0 ? component.price : null,
+                  $totalPriceStock: totalPrice > 0 ? totalPrice : null,
+                  $ordered: component.ordered > 0 ? component.ordered : null,
+                  $building: component.building > 0 ? component.building : null,
+                  $needed: needed > 0 ? needed : null,
+                  $availableActual: available,
+                  $source: obj,
+                  $sourceIx: params.index + ix
+                };
+              }, this);
+              callback(cloned);
+            }.bind(this);
+            this.$.grid.refreshItems();
+          }
+        },
+        trackVisibleRows: function() {
+          if (this.document.items) {
+            this.$.grid.size = this.document.items.length;
+            this.$.grid.refreshItems();
+          }
+        },
+        deleteButtonIcon: function(item) {
+          var ix = this.document.items.indexOf(item);
+          if (ix === this.document.items.length - 1) {
+            return '';
+          } else {
+            return 'close';
+          }
+        },
+        deleteButtonDisabled: function(item) {
+          var ix = this.document.items.indexOf(item);
+          if (ix === this.document.items.length - 1) {
+            return true;
+          } else {
+            return false;
+          }
+        },
+        deleteRow: function() {
+          if (!this.document.items || this.document.stage !== 'draft') {
+            return;
+          }
+          if (this.editingItem.$sourceIx < this.document.items.length - 1) {
+            this._wasDeleted = true;
+            this.splice('document.items', this.editingItem.$sourceIx, 1);
+          }
+        },
+        availabilityIcon: function(component) {
+          var c = app.encode(component);
+          var stocked = 0;
+          var needed = 0;
+          var building = 0;
+          var ordered = 0;
+          if (this.state[c] && (this.state[c].stocked > 0)) {
+            stocked = Number(this.state[c].stocked);
+          }
+          if (this.state[c] && (this.state[c].needed > 0)) {
+            needed = Number(this.state[c].needed);
+          }
+          if (this.state[c] && (this.state[c].building > 0)) {
+            building = Number(this.state[c].building);
+          }
+          if (this.state[c] && (this.state[c].ordered > 0)) {
+            ordered = Number(this.state[c].ordered);
+          }
+          if (needed <= stocked) {
+            return 'check';
+          } else if (needed > stocked && needed <= stocked + ordered) {
+            return 'shopping-cart';
+          } else if (needed > stocked && needed <= stocked + building) {
+            return 'build';
+          } else {
+            return 'close';
+          }
+        },
+        availabilityClass: function(component, qty) {
+          var c = app.encode(component);
+          var stocked = 0;
+          var needed = 0;
+          var _qty = Number(qty);
+          if (this.state[c] && (this.state[c].stocked > 0)) {
+            stocked = Number(this.state[c].stocked);
+          }
+          if (this.state[c] && (this.state[c].needed > 0)) {
+            needed = Number(this.state[c].needed);
+          }
+          if (needed <= stocked) {
+            return 'icon-green';
+          } else if (needed > stocked && _qty <= stocked) {
+            return 'icon-yellow';
+          } else {
+            return 'icon-red';
+          }
+        },
+        trackEditingItemValues: function(document, arg) {
+          var path = arg.path.split('.');
+          var parameter = path.pop();
+          var value = arg.value;
+          // Changed one of the rows (presumably in the editor)
+          if (parameter === 'componentName') {
+            // create new if needed
+            if (!value && !this.editingItem.eagle && !this.editingItem.vendor) {
+              this._set('editingItem.qty', null);
+            }
+          } else if (parameter === 'qty' && this.document.type === 'purchase') {
+            if (!value) {
+              this._set('editingItem.unitPrice', null);
+              this._set('editingItem.totalPrice', null);
+            } else {
+              if (this.editingItem.unitPrice) {
+                this._set('editingItem.totalPrice',
+                  Number(this.editingItem.unitPrice) * Number(value));
+              }
+            }
+          } else if (parameter === 'unitPrice' && this.document.type === 'purchase') {
+            if (value && this.editingItem.qty) {
+              this._set('editingItem.totalPrice',
+                Number(this.editingItem.qty) * Number(value));
+            } else {
+              this._set('editingItem.totalPrice', null);
+            }
+          } else if (parameter === 'totalPrice' && this.document.type === 'purchase') {
+            if (value && this.editingItem.qty && this.editingItem.qty > 0) {
+              this._set('editingItem.unitPrice',
+                Number(value) / Number(this.editingItem.qty));
+            } else {
+              this._set('editingItem.totalPrice', null);
+            }
+          }
+        },
+        trackComponentName: function(state, value) {
+          if (value && !this.state[app.encode(value)]) {
+            this.set('state.' + app.encode(value), {});
+          }
+        },
+        trackItemValues: function(document, arg) {
+          var path = arg.path.split('.');
+          var parameter = path.pop();
+          var index = path.pop();
+          if (index.charAt(0) === '#') {
+            index = Number(index.substr(1));
+          } else {
+            index = null;
+          }
+          if (index !== null) {
+            // Changed one of the rows (presumably in the editor)
+            if (parameter === 'componentName') {
+              // create new if needed
+              this.addRow();
+            }
+            this.$.grid.refreshItems();
+          }
+        },
+        getNeeded: function(component) {
+          var need = 0;
+          var c = app.encode(component);
+          if (this.state[c] && (this.state[c].needed > 0)) {
+            need = this.state[c].needed;
+            if (this.state[c].ordered > 0) {
+              need = need - this.state[c].ordered;
+            }
+            if (this.state[c].stocked > 0) {
+              need = need - this.state[c].stocked;
+            }
+          }
+          if (need > 0) {
+            return need;
+          } else {
+            return '';
+          }
+        },
+        getStocked: function(component) {
+          var c = app.encode(component);
+          if (this.state[c] && (this.state[c].stocked > 0)) {
+            return this.state[c].stocked;
+          } else {
+            return '';
+          }
+        },
+        getAvailable: function(component) {
+          var c = app.encode(component);
+          if (this.state[c]) {
+            var available = Number(this.state[c].stocked || 0) -
+              Number(this.state[c].needed || 0);
+
+            return available > 0 ? available : '';
+          }
+        },
+        getPrice: function(component) {
+          var c = app.encode(component);
+          if (this.state[c] && (this.state[c].price > 0)) {
+            return this.state[c].price;
+          } else {
+            return '';
+          }
+        },
+        getTotalPrice: function(component, qty) {
+          var c = app.encode(component);
+          if (qty && this.state[c] && (this.state[c].price > 0)) {
+            return Number(qty) * Number(this.state[c].price);
+          } else {
+            return '';
+          }
+        },
+        getOrdered: function(component) {
+          var c = app.encode(component);
+          if (this.state[c] && (this.state[c].ordered > 0)) {
+            return this.state[c].ordered;
+          } else {
+            return '';
+          }
+        },
+        getBuilding: function(component) {
+          var c = app.encode(component);
+          if (this.state[c] && (this.state[c].building > 0)) {
+            return this.state[c].building;
+          } else {
+            return '';
+          }
+        },
+        documentIs: function(type, typeVal, stage, stageVal) {
+          return (type === typeVal && stage === stageVal) ||
+            (typeVal.indexOf(type) >= 0 && stageVal.indexOf(stage) >= 0);
+        },
+        documentNot: function(type, typeVal, stage, stageVal) {
+          return !(type === typeVal && stage === stageVal);
+        },
+        proceedToDraft: function() {
+          if (this.document.stage === 'placed') {
+            app.purchasePlaced(this.document, true);
+            this.push('document.items',
+              {
+                componentName: '',
+                qty: null,
+                unitPrice: null,
+                totalPrice: null,
+                unitPriceActual: null
+              });
+            this.set('document.stage', 'draft');
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+          if (this.document.stage === 'ready') {
+            app.buildReady(this.document, true);
+            this.push('document.items',
+              {
+                componentName: '',
+                qty: null,
+                unitPrice: null,
+                totalPrice: null,
+                unitPriceActual: null
+              });
+            this.set('document.stage', 'draft');
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+          if (this.document.stage === 'accepted') {
+            app.saleAccepted(this.document, true);
+            this.push('document.items',
+              {
+                componentName: '',
+                qty: null,
+                unitPrice: null,
+                totalPrice: null,
+                unitPriceActual: null
+              });
+            this.set('document.stage', 'draft');
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+
+        },
+        applyPurchase: function(sign) {
+          for (var i = 0; i < this.document.items.length; i++) {
+            var c = app.encode(this.document.items[i].componentName);
+            var q = this.document.items[i].qty;
+            var qa = this.document.items[i].qtyActual;
+            var p = this.document.items[i].unitPriceActual;
+            var o = this.state[c].ordered;
+            if (!o) {
+              o = 0;
+            }
+            var s = this.state[c].stocked;
+            if (!s) {
+              s = 0;
+            }
+            var v = this.state[c].value;
+            if (!v) {
+              v = 0;
+            }
+            this.set('state.' + c + '.ordered', o + sign * Number(q));
+            this.set('state.' + c + '.stocked', s - sign * Number(qa));
+            this.set('state.' + c + '.value', v - sign * Number(p) * Number(qa));
+            if (this.state[c].stocked > 0) {
+              this.set('state.' + c + '.price',
+                this.state[c].value / this.state[c].stocked);
+            } else {
+              this.set('state.' + c + '.price', '');
+            }
+          }
+        },
+        proceedToPlaced: function() {
+          if (this.disablePlace(this.document)) {
+            return;
+          }
+          if (this.document.stage === 'draft') {
+            // remove empty line
+            var ix = this.document.items.length - 1;
+            if (!this.document.items[ix].componentName) {
+              this.pop('document.items');
+            }
+            app.purchasePlaced(this.document, false, true);
+            this.set('document.stage', 'placed');
+            this.set('document.datePlaced', new Date().getTime());
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          } else if (this.document.stage === 'received') {
+            app.purchaseReceived(this.document, true);
+            app.purchasePlaced(this.document, false, false);
+            this.set('document.stage', 'placed');
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+        },
+        proceedToReceived: function() {
+          if (this.disableReceive(this.document)) {
+            return;
+          }
+          if (this.document.stage === 'placed') {
+            app.purchasePlaced(this.document, true);
+            app.purchaseReceived(this.document, false, true);
+            this.set('document.dateReceived', new Date().getTime());
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'received');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+        },
+        proceedToFinished: function() {
+          if (this.disableFinished(this.document)) {
+            return;
+          }
+          if (this.document.stage === 'ready') {
+            app.buildReady(this.document, true, false);
+            app.buildFinished(this.document, false, true);
+            this.set('document.dateFinished', new Date().getTime());
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'finished');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+        },
+        proceedToCompleted: function() {
+          if (this.disableCompleted(this.document)) {
+            return;
+          }
+          if (this.document.stage === 'accepted') {
+            app.saleAccepted(this.document, true, false);
+            app.saleCompleted(this.document, false, true);
+            this.set('document.dateCompleted', new Date().getTime());
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'completed');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+        },
+        proceedToReady: function() {
+          if (this.disableReady(this.document)) {
+            return;
+          }
+          if (this.document.stage === 'draft') {
+            // remove empty line
+            var ix = this.document.items.length - 1;
+            if (!this.document.items[ix].componentName) {
+              this.pop('document.items');
+            }
+            app.buildReady(this.document, false, true);
+            this.set('document.dateReady', new Date().getTime());
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'ready');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          } else if (this.document.stage === 'finished') {
+            app.buildFinished(this.document, true, false);
+            app.buildReady(this.document, false, false);
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'ready');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+        },
+        proceedToAccepted: function() {
+          if (this.disableAccepted(this.document)) {
+            return;
+          }
+          if (this.document.stage === 'draft') {
+            // remove empty line
+            var ix = this.document.items.length - 1;
+            if (!this.document.items[ix].componentName) {
+              this.pop('document.items');
+            }
+            app.saleAccepted(this.document, false, true);
+            this.set('document.dateAccepted', new Date().getTime());
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'accepted');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          } else if (this.document.stage === 'completed') {
+            app.saleCompleted(this.document, true);
+            app.saleAccepted(this.document, false, false);
+            this.set('document.dateStatusChange', new Date().getTime());
+            this.set('document.stage', 'accepted');
+            this.set('state.touched', new Date().getTime());
+            this.fire('save', this.document._id);
+          }
+        },
+        calculateActualPrices: function() {
+          var document = this.document;
+          if (!document || !document.items || document.stage !== 'placed') {
+            return;
+          }
+          var i;
+          if (!document.totalPayed) {
+            for (i = 0; i < document.items.length; i++) {
+              this._set('document.items.' + i + '.unitPriceActual', null);
+            }
+
+            return;
+          }
+          var quoted = 0;
+          var unquoted = 0;
+          var quotedTotal = 0;
+          for (i = 0; i < document.items.length; i++) {
+            if (document.items[i].totalPrice > 0) {
+              quoted = quoted + Number(document.items[i].qty);
+              quotedTotal = quotedTotal + Number(document.items[i].totalPrice);
+            } else {
+              unquoted = unquoted + Number(document.items[i].qty);
+            }
+          }
+          var rate;
+          var price;
+          if (quoted > 0 && unquoted === 0) {
+            rate = document.totalPayed / quotedTotal;
+            for (i = 0; i < document.items.length; i++) {
+              this._set('document.items.' + i + '.unitPriceActual',
+                Number(document.items[i].unitPrice) * rate);
+            }
+          } else if (quoted === 0 && unquoted > 0) {
+            price = document.totalPayed / unquoted;
+            for (i = 0; i < document.items.length; i++) {
+              this._set('document.items.' + i + '.unitPriceActual', price);
+            }
+          } else if (quoted > 0 && unquoted > 0) {
+            var grand = quotedTotal * (quoted + unquoted) / quoted;
+            rate = document.totalPayed / grand;
+            price = rate * quotedTotal / quoted;
+            for (i = 0; i < document.items.length; i++) {
+              if (document.items[i].unitPrice > 0) {
+                this._set('document.items.' + i + '.unitPriceActual',
+                  Number(document.items[i].unitPrice) * rate);
+              } else {
+                this._set('document.items.' + i + '.unitPriceActual', price);
+              }
+            }
+          }
+        },
+        disablePlace: function(document) {
+          var i;
+          if (document.stage === 'received' && document.items) {
+            var used = false;
+            for (i = 0; i < this.document.items.length; i++) {
+              var c = app.encode(this.document.items[i].componentName);
+              if (!this.state[c] || !this.state[c].stocked || this.state[c].stocked <
+                this.document.items[i].qtyActual) {
+                used = true;
+              }
+            }
+            return used;
+          }
+          if (document.stage === 'draft' && document.items) {
+            var validComponents = 0;
+            var validLines = 0;
+            for (i = 0; i < this.document.items.length; i++) {
+              if (this.document.items[i].componentName) {
+                validComponents++;
+              }
+              if (this.document.items[i].qty > 0) {
+                validLines++;
+              }
+            }
+            return !!(validComponents === 0 ||
+            validLines !== validComponents);
+
+          }
+          return true;
+        },
+        disableReceive: function(document) {
+          if (document.stage === 'placed') {
+            if (!document.totalPayed) {
+              return true;
+            }
+            for (var i = 0; i < this.document.items.length; i++) {
+              if (!this.document.items[i].qtyActual) {
+                return true;
+              }
+            }
+            return false;
+          }
+          return true;
+        },
+        disableReady: function(document) {
+          if (document.stage === 'finished' && document.items) {
+            var used = false;
+            var c = app.encode(this.document.componentName);
+            if (!this.state[c] || !this.state[c].stocked ||
+              this.state[c].stocked < 1) {
+              used = true;
+            }
+            return used;
+          }
+          if (document.stage === 'draft' && document.items) {
+            var validComponents = 0;
+            var validLines = 0;
+            for (var i = 0; i < this.document.items.length; i++) {
+              if (this.document.items[i].componentName) {
+                validComponents++;
+              }
+              if (this.document.items[i].qty > 0) {
+                validLines++;
+              }
+            }
+            if (validComponents === 0 ||
+              validLines !== validComponents) {
+              return true;
+            }
+            return !this.document.componentName;
+          }
+          return true;
+        },
+        disableAccepted: function(document) {
+          if (document.stage === 'completed') {
+            return false;
+          }
+          if (document.stage === 'draft' && document.items) {
+            var validComponents = 0;
+            var validLines = 0;
+            for (var i = 0; i < this.document.items.length; i++) {
+              if (this.document.items[i].componentName) {
+                validComponents++;
+              }
+              if (this.document.items[i].qty > 0) {
+                validLines++;
+              }
+            }
+            if (validComponents === 0 ||
+              validLines !== validComponents) {
+              return true;
+            }
+            return false;
+          }
+          return true;
+        },
+        disableFinished: function(document) {
+          if (document.stage === 'ready' && document.items) {
+            var validLines = 0;
+            for (var i = 0; i < this.document.items.length; i++) {
+              if (this.availabilityClass(this.document.items[i].componentName,
+                  this.document.items[i].qty) !== 'icon-red') {
+                validLines++;
+              }
+            }
+            return validLines < this.document.items.length;
+          }
+          return true;
+        },
+        disableCompleted: function(document) {
+          if (document.stage === 'accepted' && document.items) {
+            var validLines = 0;
+            for (var i = 0; i < this.document.items.length; i++) {
+              if (this.getStocked(this.document.items[i].componentName) >=
+                this.document.items[i].qty) {
+                validLines++;
+              }
+            }
+            return (validLines < this.document.items.length);
+          }
+          return true;
+        },
+        _save: function() {
+          if (this.dirty) {
+            this.fire('save', this.document._id);
+          }
+        },
+        _delete: function() {
+          this.fire('delete', this.document._id);
+        },
+        _cancel: function() {
+          if (this.dirty) {
+            this.fire('cancel', this.document._id);
+          }
+        },
+        _set: function(left, right) {
+          if (this.get(left) !== right) {
+            this.set(left, right);
+            return true;
+          } else {
+            return false;
+          }
+        },
+        addRow: function() {
+          if (!this.document.items || this.document.stage !== 'draft') {
+            return;
+          }
+          if (this.document.items[this.document.items.length - 1].componentName) {
+            this.push('document.items',
+              {
+                componentName: '',
+                qty: null,
+                unitPrice: null,
+                totalPrice: null,
+                unitPriceActual: null
+              });
+          }
+        },
+        dateFormat: function(date, format) {
+          return moment(date).format(format);
+        },
+        labelFormat: function(type, caption) {
+          return type.charAt(0).toUpperCase() + type.slice(1) + ' ' + caption;
+        },
+        eq: function(var1, var2) {
+          return var1 === var2;
+        },
+        eqString: function(var1, var2, valTrue, valFalse) {
+          return (var1 === var2) ? valTrue : valFalse;
+        },
+        neq: function(var1, var2) {
+          return (var1 !== var2);
+        },
+        ready: function() {
+          this.$.grid.footer.addRow();
+          this.$.grid.set('visibleRows', 0);
+          this.$.grid.rowClassGenerator = function(row) {
+            if (!row.data || !this.document || !row.data.componentName) {
+              return '';
+            }
+            if (this.document.type === 'purchase' ||
+              'completed|finished'.indexOf(this.document.stage) >= 0) {
+              return '';
+            } else {
+              var diff = (this.document.stage === 'draft') ? Number(row.data.qty || 0) : 0;
+              if (Number(row.data.qty || 0) <= Number(row.data.$stocked || 0) &&
+                row.data.$availableActual >= diff) {
+                return '';
+              } else if (Number(row.data.qty || 0) <= Number(row.data.$stocked || 0)) {
+                return 'row-orange';
+              } else if (Number(row.data.qty || 0) <= Number(row.data.$stocked || 0) +
+                Number(row.data.$ordered || 0) + Number(row.data.$building || 0)) {
+                return 'row-blue';
+              } else {
+                return 'row-red';
+              }
+            }
+          }.bind(this);
+
+          //this.$.grid.rowDetailsGenerator = this.rowDetails.bind(this);
+        },
+        rowDetails: function() {
+          //this.$.editor.style.display = 'block';
+          //return this.$.editor;
+        },
+        gridItemSelect: function() {
+          //this.$.grid.setRowDetailsVisible(this.editingItemIx, false);
+          var selected = this.$.grid.selection.selected();
+          if (selected.length === 1 && !this.$.editor.opened) {
+            this.selectedRow = selected[0];
+            this._focusedElement = document.activeElement;
+            this.$.grid.getItem(this.selectedRow, function(err, proxy) {
+              this.set('editingItem', proxy);
+              this.$.editor.open();
+            }.bind(this));
+          }
+        },
+        editorOpened: function(event) {
+          if (event && this.document && this.document.items &&
+            this.editingItem && this.$.editor.opened) {
+            this.async(function() {
+              this.focusFirst();
+            }, 100);
+          }
+          if (this.document && this.document.items && this.editingItem &&
+            (!event || !this.$.editor.opened)) {
+            if (this.$.editor.closingReason.confirmed || !event) {
+              var keys = Object.keys(this.editingItem).filter(function(key) {
+                return key.charAt(0) !== '$';
+              });
+              var ix = this.editingItem.$sourceIx;
+              if (this.editingItem.componentName || this.editingItem.eagle || this.editingItem.vendor) {
+                if (!this.state[app.encode(this.editingItem.componentName)]) {
+                  this.set('state.' + app.encode(this.editingItem.componentName), {});
+                }
+                keys.forEach(function(key) {
+                  this._set('document.items.' + ix + '.' + key,
+                    this.editingItem[key]);
+                }.bind(this));
+              } else {
+                this.deleteRow();
+              }
+            }
+            if (event) {
+              this.async(function() {
+                this.focusGrid();
+              }, 100);
+            }
+          }
+        },
+        focusGrid: function() {
+          if (this._focusedElement) {
+            this._focusedElement.focus();
+            this._focusedElement = undefined;
+          }
+        },
+        focusFirst: function() {
+          var components = [
+            this.$.editQty,
+            this.$.editUnitPrice,
+            this.$.editTotalPrice,
+            this.$.editQtyActual
+          ];
+          var focused = false;
+          if (!this.$.editComponentName.hidden) {
+            this.$.editComponentName.$.input.focus();
+            focused = true;
+          }
+          components.forEach(function(component) {
+            if (!focused && !component.hidden) {
+              component.$.input.focus();
+              focused = true;
+            }
+          }, this);
+        },
+        onEsc: function() {
+          if (this.$.editComponentName.opened) {
+            this.$.editComponentName._onEscape();
+          } else {
+            this.set('reloadMark', !this.reloadMark);
+            this.$.editor.cancel();
+            this.$.grid.refreshItems();
+          }
+        },
+        generateEagleName: function() {
+          if (this.editingItem.eagle) {
+            var library = this.editingItem.eagle.library || '';
+            var value = this.editingItem.eagle.value || '';
+            var pkg = this.editingItem.eagle.pkg || '';
+            library = library.replace(/[_\-]/g, ' ');
+            library = library.replace(/\w\S*/g, function(txt) {
+              return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+            });
+            var name = (library + ' ' + value + ' ' + pkg).trim();
+            this.set('editingItem.componentName', name);
+            this.$.editComponentName.$.input.focus();
+          }
+        },
+        deleteRowTap: function() {
+          this.editingItem.componentName = '';
+          if (this.editingItem.eagle) {
+            delete this.editingItem.eagle;
+          }
+          if (this.editingItem.vendor) {
+            delete this.editingItem.vendor;
+          }
+          this.onEnter();
+        },
+        onEnter: function() {
+          if (!this.$.editor.opened) {
+            return;
+          }
+          var components = [
+            this.$.editQty,
+            this.$.editUnitPrice,
+            this.$.editTotalPrice,
+            this.$.editQtyActual
+          ];
+          var inInput = false;
+          var last = true;
+          if (!this.$.editComponentName.hidden &&
+            this.$.editComponentName._focusedInput() === this.$.editComponentName.$.input) {
+            inInput = true;
+          }
+          components.forEach(function(component) {
+            if (component.focused && !inInput) {
+              inInput = true;
+            } else {
+              if (!component.hidden && !component.disabled && last && inInput) {
+                last = false;
+                component.$.input.focus();
+              }
+            }
+          }, this);
+          if (last) {
+            this._wasDeleted = false;
+            this.editorOpened(null);
+            if (this.selectedRow < this.document.items.length - 1 && !this.filterValue) {
+              if (this._wasDeleted) {
+                this.selectedRow--;
+              }
+              this.set('editingItem', this._itemList[++this.selectedRow]);
+              this.$.grid.selection.select(this.selectedRow);
+              this.$.grid.scrollToRow(this.selectedRow);
+              this.focusFirst();
+            } else {
+              this.set('reloadMark', !this.reloadMark);
+              this.$.editor.cancel();
+              this.selectedRow = null;
+              this.$.grid.selection.clear();
+            }
+          }
+        }
+      });
+    })
+    ();
+  </script>
+</dom-module>

@@ -1,0 +1,748 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import"
+      href="../../bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import"
+      href="../../bower_components/vaadin-combo-box/vaadin-combo-box.html">
+
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import"
+      href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import"
+      href="../../bower_components/paper-date-picker/paper-date-picker.html">
+<link rel="import"
+      href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
+<link rel="import"
+      href="../../bower_components/iron-a11y-keys/iron-a11y-keys.html">
+
+<link rel="import"
+      href="../../bower_components/moment-element/moment-with-locales-import.html">
+
+<dom-module id="component-list">
+  <template>
+    <style include="shared-styles">
+      :host {
+        display: block;
+      }
+
+      .item {
+        /* @formatter:off */
+        @apply(--layout-horizontal);
+        /* @formatter:on */
+        padding: 0 14px;
+        /*border-bottom: 1px solid #DDD;*/
+      }
+
+      .item-padded {
+        /* @formatter:off */
+        @apply(--layout-horizontal);
+        /* @formatter:on */
+        padding: 16px 14px;
+        /*border-bottom: 1px solid #DDD;*/
+      }
+
+      /*.item:hover {
+        background-color: var(--google-grey-100);
+      }*/
+      .item paper-input, .item paper-value, .item component-picker, .item div,
+      .item-padded paper-input, .item-padded paper-value, .item-padded component-picker, .item-padded div {
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .separator-bottom {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+      }
+
+      paper-input paper-icon-button, paper-icon-button.inline {
+        height: 24px;
+        width: 24px;
+        padding: 0;
+        margin-bottom: 3px;
+      }
+
+      vaadin-combo-box /deep/ paper-input-container {
+        line-height: 1 !important;
+      }
+
+      /* @formatter:off */
+      paper-input.no-underline {
+        --paper-input-container-underline: {
+          display: none;
+        };
+      }
+      /* @formatter:on */
+
+      paper-input.no-underline /deep/ paper-input-container[disabled] {
+        opacity: 1 !important;
+      }
+
+      paper-input.no-underline /deep/ input[disabled] {
+        color: black;
+      }
+
+      .paper-value {
+        line-height: 44px;
+      }
+
+      .flex3child {
+        /* @formatter:off */
+        @apply(--layout-flex-3);
+        /* @formatter:on */
+      }
+
+      paper-card {
+        width: 100%;
+      }
+
+      paper-item {
+        cursor: pointer;
+      }
+      /*paper-button {
+        padding: 0.2em 0.5em;
+        font-size: 14px;
+      }*/
+
+      iron-icon.icon-green {
+        color: var(--paper-green-500);
+      }
+
+      iron-icon.icon-red {
+        color: var(--paper-red-500);
+      }
+
+      iron-icon.icon-yellow {
+        color: var(--paper-yellow-600);
+      }
+
+      paper-button.red {
+        background-color: var(--paper-red-500);
+        color: white;
+      }
+
+      paper-button.blue {
+        background-color: var(--paper-blue-500);
+        color: white;
+      }
+
+      paper-button.green {
+        background-color: var(--paper-green-700);
+        color: white;
+      }
+
+      vaadin-grid {
+        border-top: 1px solid #e8e8e8;
+        height: 100%;
+      }
+
+      .footerData {
+        display: none;
+      }
+
+      vaadin-grid /deep/ .footerData {
+        display: inline;
+      }
+
+      vaadin-grid /deep/ .vaadin-grid-tablewrapper {
+        background-color: #fafafa;
+      }
+
+      paper-badge {
+        --paper-badge-margin-bottom: -20px;
+        --paper-badge-margin-left: -20px;
+      }
+
+      paper-badge.badge-0 {
+        opacity: 0;
+      }
+
+      pre {
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+    </style>
+
+    <!-- Card -->
+    <paper-card elevation="0" class="flex layout vertical">
+      <div class="card-actions item-padded layout horizontal">
+        <paper-input label="Filter" class="flex" no-label-float
+                     value="{{filterValue}}"></paper-input>
+
+        <poly-filter id="filterer"
+                     filter="[[filterValue]]"
+                     array-to-filter="[[_componentList]]"
+                     filtered-array="{{filteredComponentList}}"
+                     filter-by="componentName">
+        </poly-filter>
+        <paper-dropdown-menu no-label-float value="{{filterBy}}">
+          <paper-listbox class="dropdown-content" selected="0">
+            <paper-item>All</paper-item>
+            <paper-item>Stocked</paper-item>
+            <paper-item>Reserved</paper-item>
+            <paper-item>Deficit</paper-item>
+            <paper-item>Ordered</paper-item>
+            <paper-item>Building</paper-item>
+          </paper-listbox>
+        </paper-dropdown-menu>
+        <paper-menu-button horizontal-align="right" vertical-offset="40"
+                           id="orderButton">
+          <paper-icon-button icon="add-shopping-cart"
+                             class="dropdown-trigger"></paper-icon-button>
+          <paper-menu class="dropdown-content">
+            <paper-item disabled="{{!orderableMouser}}"
+                        on-tap="showMouserBom">
+              Mouser:&nbsp;<strong>{{orderableMouser}}</strong>
+            </paper-item>
+            <paper-item disabled="{{!orderableDigikey}}"
+                        on-tap="showDigikeyBom">
+              DigiKey:&nbsp;<strong>{{orderableDigikey}}</strong>
+            </paper-item>
+            <paper-item disabled="{{!orderableElitan}}"
+                        on-tap="showElitanBom">
+              Elitan:&nbsp;<strong>{{orderableElitan}}</strong>
+            </paper-item>
+            <paper-item disabled="{{!orderableEbay}}"
+                        on-tap="showEbayBom">
+              eBay:&nbsp;<strong>{{orderableEbay}}</strong>
+            </paper-item>
+            <paper-item disabled="{{!orderableAliExpress}}"
+                        on-tap="showAliExpressBom">
+              AliExpress:&nbsp;<strong>{{orderableAliExpress}}</strong>
+            </paper-item>
+            <paper-item disabled="{{!orderableUnknown}}"
+                        on-tap="showUnknownBom">
+              Total:&nbsp;<strong>{{orderableUnknown}}</strong>
+            </paper-item>
+          </paper-menu>
+        </paper-menu-button>
+        <paper-menu-button horizontal-align="right" vertical-offset="40"
+                           id="buildButton">
+          <paper-icon-button icon="build"
+                             class="dropdown-trigger"></paper-icon-button>
+          <paper-menu class="dropdown-content">
+            <paper-item disabled="{{!buildable}}"
+                        on-tap="autoBuild">
+              Create&nbsp;missing&nbsp;builds:&nbsp;<strong>{{buildable}}</strong>
+            </paper-item>
+          </paper-menu>
+        </paper-menu-button>
+      </div>
+
+      <vaadin-grid class="flex" id="components"
+                   items="[[filteredComponentList]]"
+                   frozen-columns="1"
+                   on-selected-items-changed="gridItemSelect">
+        <table>
+          <colgroup>
+            <col flex name="componentName" sortable sort-direction="asc">
+            <col name="unitPriceStock" sortable width="160">
+            <col name="stocked" sortable width="120">
+            <col name="reserved" sortable width="120">
+            <col name="deficit" sortable width="120">
+            <col name="ordered" sortable width="120">
+            <col name="building" sortable width="120">
+          </colgroup>
+        </table>
+      </vaadin-grid>
+
+      <paper-dialog id="export" with-backdrop>
+        <h2>
+          {{bomType}} Bill of Materials
+        </h2>
+        <paper-dialog-scrollable>
+          <marked-element markdown="{{bomKnown}}"></marked-element>
+          <marked-element markdown="{{bomUnknown}}"></marked-element>
+        </paper-dialog-scrollable>
+      </paper-dialog>
+
+      <paper-dialog id="componentDetails" with-backdrop>
+        <h2>
+          Component: {{selectedComponent.componentName}}
+        </h2>
+
+        <paper-dialog-scrollable>
+          <marked-element markdown="{{references}}"></marked-element>
+          <div class="layout horizontal">
+            <paper-input class="flex" no-label-float label="Component name"
+                         value="{{selectedComponentName}}"></paper-input>
+            <paper-button raised
+                          disabled$="[[componentExists(selectedComponentName)]]"
+                          on-tap="rename">
+              Rename
+            </paper-button>
+
+          </div>
+        </paper-dialog-scrollable>
+
+      </paper-dialog>
+    </paper-card>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'component-list',
+
+        properties: {
+          state: {
+            type: Object,
+            notify: true
+          },
+          filter: {
+            type: String,
+            notify: true
+          },
+          filterBy: {
+            type: String,
+            notify: true,
+            value: 'All'
+          },
+          components: {
+            type: Array,
+            notify: true
+          },
+          _componentList: {
+            type: Array,
+            computed: '_getComponentList(state,filterBy,state.*)',
+          },
+          orderableMouser: {
+            type: Number,
+            computed: 'getOrderable(\'Mouser\',state,state.*)'
+          },
+          orderableUnknown: {
+            type: Number,
+            computed: 'getOrderable(\'\',state,state.*)'
+          },
+          orderableDigikey: {
+            type: Number,
+            computed: 'getOrderable(\'DigiKey\',state,state.*)'
+          },
+          orderableElitan: {
+            type: Number,
+            computed: 'getOrderable(\'Elitan\',state,state.*)'
+          },
+          orderableEbay: {
+            type: Number,
+            computed: 'getOrderable(\'eBay\',state,state.*)'
+          },
+          orderableAliExpress: {
+            type: Number,
+            computed: 'getOrderable(\'AliExpress\',state,state.*)'
+          },
+          buildable: {
+            type: Number,
+            computed: 'getBuildable(state,state.*)'
+          },
+          bomType: {
+            type: String,
+            notify: true
+          },
+          bomKnown: {
+            type: String,
+            notify: true
+          },
+          bomUnknown: {
+            type: String,
+            notify: true
+          },
+          references: {
+            type: String,
+            notify: true
+          },
+          selectedComponent: {
+            type: Object,
+            notify: true
+          },
+          selectedComponentName: {
+            type: String,
+            notify: true
+          }
+        },
+        observers: [
+          'trackComponentList(_componentList)'
+        ],
+        rename: function() {
+          app.renameComponent(this.selectedComponent.componentName, this.selectedComponentName);
+          this.set('selectedComponent.componentName', this.selectedComponentName);
+          this.set('selectedComponentName', this.selectedComponentName);
+        },
+        componentExists: function(name) {
+          return !!(!name || this.state[app.encode(name)]);
+        },
+        getReferences: function(name) {
+          var refs = '';
+          var links = '';
+
+          var gather = function(doc) {
+            if (!doc.doc.items) {
+              return;
+            }
+            var found = 0;
+            var title;
+            if (doc.doc.type === 'purchase') {
+              title = 'Purchase';
+            }
+            if (doc.doc.type === 'build') {
+              title = 'Build';
+            }
+            if (doc.doc.type === 'sale') {
+              title = 'Sale';
+            }
+            doc.doc.items.forEach(function(item) {
+              if (item.componentName === name) {
+                found += Number(item.qty || 0);
+              }
+            });
+            if (!found && doc.doc.componentName === name) {
+              found++;
+            }
+            if (found > 0) {
+              refs = refs + '- ' + moment(doc.doc.dateStatusChange).format('MMMM Do YYYY') +
+                ': ' + '[' +
+                title + ' ' + doc.doc.name + '][' + doc.id.replace('-', '') + '] (' + found + ')\n';
+              links = links + '[' + doc.id.replace('-', '') + ']: ' +
+                app.baseUrl + 'document/' + doc.id + '\n';
+            }
+          };
+
+          app.purchases.forEach(gather);
+          app.builds.forEach(gather);
+          app.sales.forEach(gather);
+
+          return links !== '' ? refs + links : '';
+        },
+        gridItemSelect: function() {
+          if (this.$.buildButton.opened || this.$.orderButton.opened) {
+            return;
+          }
+          //this.$.grid.setRowDetailsVisible(this.editingItemIx, false);
+          var selected = this.$.components.selection.selected();
+          if (selected.length === 1 && !this.$.componentDetails.opened) {
+            this.$.components.getItem(selected[0], function(err, proxy) {
+              console.log(proxy);
+              this.set('selectedComponent', proxy);
+              this.set('selectedComponentName', proxy.componentName);
+              this.set('references', this.getReferences(proxy.componentName));
+              this.$.componentDetails.open();
+            }.bind(this));
+          }
+        },
+        showUnknownBom: function() {
+          this.set('bomType', '');
+          this.setBom('');
+          this.$.orderButton.close();
+          this.$.export.open();
+        },
+        showMouserBom: function() {
+          this.set('bomType', 'Mouser');
+          this.setBom('Mouser');
+          this.$.orderButton.close();
+          this.$.export.open();
+        },
+        showDigikeyBom: function() {
+          this.set('bomType', 'DigiKey');
+          this.setBom('DigiKey');
+          this.$.orderButton.close();
+          this.$.export.open();
+        },
+        showElitanBom: function() {
+          this.set('bomType', 'Elitan');
+          this.setBom('Elitan');
+          this.$.orderButton.close();
+          this.$.export.open();
+        },
+        showEbayBom: function() {
+          this.set('bomType', 'eBay');
+          this.setBom('eBay');
+          this.$.orderButton.close();
+          this.$.export.open();
+        },
+        showAliExpressBom: function() {
+          this.set('bomType', 'AliExpress');
+          this.setBom('AliExpress');
+          this.$.orderButton.close();
+          this.$.export.open();
+        },
+        autoBuild: function() {
+          this.$.buildButton.close();
+
+          var deep = 5;
+          while (deep && this.autoBuildInt()) {
+            deep--;
+          }
+          app.$.state.set('data.touched', new Date().getTime());
+          app.$.state.commit();
+          app.$.state.db.compact();
+        },
+        autoBuildInt: function() {
+          var built = 0;
+          Object.keys(this.state).filter(function(key) {
+            return (key.charAt(0) === 'A');
+          }).forEach(function(key) {
+            var component = this.state[key];
+            var needed = Number(component.needed || 0) - Number(component.building || 0) -
+              Number(component.stocked || 0);
+            if (needed > 0 && Number(component.building || 0) + Number(component.built || 0) > 0) {
+              var recent = null;
+              // Eligible for autobuild -- find suitable ready or finished build
+              app.builds.forEach(function(build) {
+                if (build.doc.type === 'build' && build.doc.stage !== 'draft' &&
+                  build.doc.componentName === app.decode(key) && (recent === null ||
+                  build.doc.dateReady > recent.doc.dateReady)) {
+                  recent = build;
+                }
+              }, this);
+              if (recent) {
+                built++;
+                for (var i = 0; i < needed; i++) {
+                  var clone =
+                  {
+                    name: recent.doc.name,
+                    type: 'build',
+                    stage: 'ready',
+                    componentName: recent.doc.componentName,
+                    dateDraft: new Date().getTime(),
+                    dateReady: new Date().getTime(),
+                    dateStatusChange: new Date().getTime(),
+                    items: recent.doc.items
+                  };
+                  app.buildReady(clone, false);
+                  app.$.buildCollection.add(clone);
+                }
+              }
+            }
+          }, this);
+          return built > 0;
+        },
+        getOrderable: function(vendor) {
+          var count = 0;
+          Object.keys(this.state).filter(function(key) {
+            return (key.charAt(0) === 'A');
+          }.bind(this)).forEach(function(key) {
+            var component = this.state[key];
+            var needed = Number(component.needed || 0) - Number(component.ordered || 0) -
+              Number(component.stocked || 0) - Number(component.building || 0);
+            if (vendor && needed > 0 && component.vendor && component.vendor.keys &&
+              component.vendor.keys.join().indexOf(vendor + ' ') >= 0) {
+              count++;
+            } else if (!vendor && needed > 0 && !component.vendor) {
+              count++;
+            }
+          }.bind(this));
+          return count;
+        },
+        getBuildable: function() {
+          var count = 0;
+          Object.keys(this.state).filter(function(key) {
+            return (key.charAt(0) === 'A');
+          }.bind(this)).forEach(function(key) {
+            var component = this.state[key];
+            var needed = Number(component.needed || 0) - Number(component.building || 0) -
+              Number(component.stocked || 0);
+            if (needed > 0 && Number(component.building || 0) + Number(component.built || 0) > 0) {
+              count++;
+            }
+          }.bind(this));
+          return count;
+        },
+        setBom: function(vendor) {
+          var bomK = '';
+          var bomU = '';
+          var bomKK = [];
+          var bomUU = [];
+          Object.keys(this.state).filter(function(key) {
+            return (key.charAt(0) === 'A');
+          }.bind(this)).forEach(function(key) {
+            var component = this.state[key];
+            var needed = Number(component.needed || 0) - Number(component.ordered || 0) -
+              Number(component.stocked || 0) - Number(component.building || 0);
+            if (needed > 0) {
+              if (vendor && component.vendor && component.vendor.keys &&
+                component.vendor.keys.join().indexOf(vendor + ' ') >= 0) {
+                var name = '';
+                component.vendor.keys.forEach(function(key) {
+                  if (key.indexOf(vendor + ' ') >= 0) {
+                    name = key.substr(vendor.length + 1);
+                  }
+                });
+                bomKK.push({componentName: name, needed: needed});
+              } else {
+                bomUU.push({componentName: app.decode(key), needed: needed});
+              }
+            }
+          }.bind(this));
+
+          if (vendor !== 'Mouser') {
+            bomK = 'Component | Qty\n' +
+              '--- | ---\n';
+          } else {
+            bomK = '```\n';
+          }
+
+          if (vendor === 'Mouser') {
+
+            bomU = 'Component | Qty\n' +
+              '--- | ---\n';
+          }
+
+          bomKK.sort(function(a, b) {
+            return a.componentName.localeCompare(b.componentName);
+          }).forEach(function(a) {
+            if (vendor === 'Mouser') {
+              bomK = bomK + a.componentName + '|' + a.needed + '\n';
+            } else {
+              bomK = bomK + '<paper-checkbox> ** ' + a.componentName + '** </paper-checkbox> | ' +
+                a.needed + '\n';
+            }
+          });
+          bomUU.sort(function(a, b) {
+            return a.componentName.localeCompare(b.componentName);
+          }).forEach(function(a) {
+            bomU = bomU + '<paper-checkbox> ' + a.componentName + ' </paper-checkbox> | ' +
+              a.needed + '\n';
+          });
+
+          if (vendor === 'Mouser') {
+            bomK = bomK + '```\n';
+          } else {
+            bomK = bomK + bomU;
+            bomU = '';
+          }
+
+          this.set('bomKnown', bomK);
+          this.set('bomUnknown', bomU);
+        },
+        trackComponentList: function() {
+          this.$.components.columns[0].renderer = this.formatComponentName;
+          this.$.components.columns[1].renderer = this.formatPrice;
+          this.$.components.columns[2].renderer = this.formatQty;
+          this.$.components.columns[3].renderer = this.formatQty;
+          this.$.components.columns[4].renderer = this.formatQty;
+          this.$.components.columns[5].renderer = this.formatQty;
+          this.$.components.columns[6].renderer = this.formatQty;
+          this.applySorting();
+          this.$.components.refreshItems();
+        },
+        _getComponentList: function(state) {
+          var reserved = this.filterBy === 'Reserved';
+          var deficit = this.filterBy === 'Deficit';
+          var stocked = this.filterBy === 'Stocked';
+          var ordered = this.filterBy === 'Ordered';
+          var building = this.filterBy === 'Building';
+          var all = !reserved && !deficit && !stocked && !ordered && !building;
+          return Object.keys(state).filter(function(key) {
+            return (key.charAt(0) === 'A');
+          }.bind(this)).map(function(key) {
+            var component = this.state[key];
+            var needed = Number(component.needed || 0) - Number(component.ordered || 0) -
+              Number(component.stocked || 0);
+
+            return {
+              componentName: app.decode(key),
+              stocked: component.stocked > 0 ? component.stocked : null,
+              unitPriceStock: component.price > 0 ? component.price : null,
+              reserved: Number(component.needed || 0) > 0 ? Number(component.needed) : null,
+              ordered: component.ordered > 0 ? component.ordered : null,
+              building: component.building > 0 ? component.building : null,
+              deficit: needed > 0 ? needed : null
+            };
+          }, this).filter(function(a) {
+            return (all) ||
+              (reserved && a.reserved > 0) ||
+              (deficit && a.deficit > 0) ||
+              (stocked && a.stocked > 0) ||
+              (ordered && a.ordered > 0) ||
+              (building && a.building > 0);
+          }).sort(function(a, b) {
+            return a.componentName.localeCompare(b.componentName);
+          });
+        },
+        formatPrice: function(cell) {
+          cell.element.innerHTML = app.formatPrice(cell.data, 2);
+        },
+        formatQty: function(cell) {
+          cell.element.innerHTML = app.formatPrice(cell.data, 0);
+        },
+        formatComponentName: function(cell) {
+          if (!cell.data) {
+            cell.element.innerHTML = '';
+            return;
+          }
+          var groups = cell.data.match(/([A-Za-z\/]+\s)+/g);
+          if (!groups) {
+            cell.element.innerHTML = cell.data;
+          } else {
+            var group = groups[0].trim();
+            var repeat = true;
+            if (cell.row.index > 0) {
+              var groupsPrev = cell.row.grid.__data__.items[cell.row.index - 1]
+                .componentName.match(/([A-Za-z\/]+\s)+/g);
+              repeat = groupsPrev && groupsPrev[0].trim() === group;
+            } else {
+              repeat = false;
+            }
+            var component = cell.data.substring(groups[0].length);
+            if (repeat) {
+              cell.element.innerHTML =
+                '<strong style="opacity: 0">' +
+                group +
+                '</strong><span style="opacity:0">&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>' +
+                component;
+            } else {
+              cell.element.innerHTML =
+                '<strong>' +
+                group +
+                '</strong><span style="opacity:0.3">&nbsp;&nbsp;&mdash;&nbsp;&nbsp;</span>' +
+                component;
+            }
+          }
+        },
+        applySorting: function() {
+          if (!this.filteredComponentList) {
+            return;
+          }
+          var sortOrder = this.$.components.sortOrder[0];
+          var sortProperty = this.$.components.columns[sortOrder.column].name;
+          var sortDirection = sortOrder.direction;
+          this._componentList.sort(function(a, b) {
+            var res;
+            var path = sortProperty.split('.');
+            for (var i = 0; i < path.length; i++) {
+              a = a[path[i]];
+              b = b[path[i]];
+            }
+            if (!isNaN(a)) {
+              res = Number(a) - Number(b);
+            } else {
+              res = a.localeCompare(b);
+            }
+
+            if ('desc' === sortDirection) {
+              res *= -1;
+            }
+            return res;
+          });
+          this.$.filterer.set('stopWords', []);
+        },
+        ready: function() {
+          this.$.components.addEventListener('sort-order-changed', this.applySorting.bind(this));
+          //this.$.grid.rowDetailsGenerator = this.rowDetails.bind(this);
+        }
+      });
+    })
+    ();
+  </script>
+</dom-module>

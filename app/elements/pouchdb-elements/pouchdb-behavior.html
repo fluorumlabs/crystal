@@ -1,0 +1,135 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="pouchdb.html">
+
+<!--
+`Polymer.PouchdbBehavior` provides a binding to a PouchDB database via the `db`
+property, which is set via the `db-name` attribute. The behavior also fires
+change events using PouchDB's [changes](http://pouchdb.com/api.html#changes)
+API.
+-->
+
+<script>
+(function() {
+  'use strict';
+
+  Polymer.PouchdbBehavior = {
+    properties: {
+      /**
+       * The name of the PouchDB database in which the document exists.
+       */
+      dbName: String,
+
+      /**
+       * The PouchDB object corresponding to `dbname`.
+       */
+      db: {
+        type: Object,
+        notify: true,
+        computed: '_getDB(dbName)'
+      },
+
+      /**
+       * If `true`, basic debug information is logged to the console
+       */
+      log: {
+        type: Boolean,
+        value: false
+      },
+
+      /**
+       * Options for listening to db changes that are emitted by the `changes`
+       * property.
+       */
+      changeOpts: {
+        type: Object,
+        value: function() {
+          return {};
+        },
+      },
+
+      debug: Boolean
+    },
+
+    observers: [
+      '_updateChangeListeners(db, changeOpts.*, _listenEvents)'
+    ],
+
+    _getDB: function(dbName) {
+      if (!dbName) {
+        return;
+      }
+      return new PouchDB(dbName);
+    },
+
+    _updateChangeListeners: function() {
+      // defaults
+      var opts = {
+        live: true
+      };
+
+      for (var k in this.changeOpts) {
+        opts[k] = this.changeOpts[k];
+      }
+
+      if (this._changes) {
+        this._changes.cancel();
+      }
+
+      this.db.info().then(function(info) {
+        /*jshint camelcase: false */
+        opts.since = info.update_seq;
+        this._changes = this.db.changes(opts);
+
+        this._changes.on('change', function(change) {
+          if (change.deleted) {
+            this._handleChangeEvent('delete', change);
+          } else if (change.changes.length === 1 &&
+            /^1-/.test(change.changes[0].rev)) {
+            this._handleChangeEvent('create', change);
+          } else {
+            this._handleChangeEvent('update', change);
+          }
+        }.bind(this));
+      }.bind(this));
+    },
+
+    _handleChangeEvent: function(eventName, info) {
+      this.fire('pouchdb-' + eventName, info);
+    },
+
+    _log: function() {
+      var args;
+
+      if (this.log) {
+        args = Array.prototype.slice.call(arguments).map(function(arg) {
+          if (arg && typeof arg.val === 'function') {
+            return arg.val();
+          }
+          return arg;
+        });
+      }
+    },
+
+    _error: function() {
+      console.error.apply(console, arguments);
+    },
+
+    addEventListener: function(eventName) {
+      // We override addEventListener so that we can selectively keep track of
+      // which pouchdb events we need to handle.
+      if (eventName.slice(0, 8) === 'pouchdb-') {
+        var pouchEvent = eventName.slice(8);
+        if (!this._listenEvents) {
+          this._listenEvents = [];
+        }
+        if (this._listenEvents.indexOf(pouchEvent) === -1) {
+          this.push('_listenEvents', pouchEvent);
+        }
+      }
+      HTMLElement.prototype.addEventListener.apply(this, arguments);
+    }
+
+  };
+
+})();
+</script>

@@ -1,0 +1,118 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<script src="../bower_components/page/page.js"></script>
+<script>
+  window.addEventListener('WebComponentsReady', function() {
+
+    // We use Page.js for routing. This is a Micro
+    // client-side router inspired by the Express router
+    // More info: https://visionmedia.github.io/page.js/
+
+    // Removes end / from app.baseUrl which page.base requires for production
+    if (window.location.port === '') {  // if production
+      page.base(app.baseUrl.replace(/\/$/, ''));
+    }
+
+    // Middleware
+    function closeDrawer(ctx, next) {
+      app.closeDrawer();
+      next();
+    }
+
+    // Routes
+    page('*', closeDrawer, function(ctx, next) {
+      next();
+    });
+
+    page('/', function() {
+      app.route = 'components';
+      app.routeFull = app.route;
+      app.title = 'Crystal';
+    });
+
+    page(app.baseUrl, function() {
+      app.route = 'components';
+      app.routeFull = app.route;
+      app.title = 'Crystal';
+    });
+
+    page('/purchases', function() {
+      app.route = 'purchases';
+      app.routeFull = app.route;
+      app.title = 'Purchases';
+    });
+
+    page('/builds', function() {
+      app.route = 'builds';
+      app.routeFull = app.route;
+      app.title = 'Builds';
+    });
+
+    page('/sales', function() {
+      app.route = 'sales';
+      app.routeFull = app.route;
+      app.title = 'Sales';
+    });
+
+    page('/import-purchase', function() {
+      app.route = 'import-purchase';
+      app.routeFull = app.route;
+      app.title = 'Import Purchase';
+    });
+
+    page('/import-build', function() {
+      app.route = 'import-build';
+      app.routeFull = app.route;
+      app.title = 'Import Build';
+    });
+
+    page('/settings', function() {
+      app.route = 'settings';
+      app.routeFull = app.route;
+      app.title = 'Settings';
+    });
+
+    page('/document/:id', function(data) {
+      if (app.$.componentList.$.componentDetails.opened) {
+        app.$.componentList.$.componentDetails.close();
+      }
+
+      app.route = 'document-view';
+      app.params = data.params;
+      app.title = '';
+
+      if (data.params.id.startsWith('p-')) {
+        app.routeFull = 'purchases';
+      } else if (data.params.id.startsWith('b-')) {
+        app.routeFull = 'builds';
+      } else if (data.params.id.startsWith('s-')) {
+        app.routeFull = 'sales';
+      }
+      if (app.$.state.dirty) {
+        app.$.state.rollback();
+      }
+      app.$.document.set('docId', app.params.id);
+    });
+
+    // 404
+    page('*', function() {
+      app.$.toast.text = 'Can\'t find: ' + window.location.href + '. Redirected you to Home Page';
+      app.$.toast.show();
+      page.redirect(app.baseUrl);
+    });
+
+    // add #! before urls
+    page({
+      hashbang: true
+    });
+
+  });
+</script>

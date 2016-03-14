@@ -1,0 +1,66 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+
+<dom-module id="paper-value">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .paper-input-input {
+        height: 24px;
+        margin-top: 2px;
+        margin-bottom: 2px;
+      }
+
+      paper-input-container /deep/ .unfocused-line {
+        border-bottom: 1px dashed;
+        background-color: transparent !important;
+        height: 0px;
+      }
+    </style>
+
+    <paper-input-container no-label-float="[[noLabelFloat]]" always-float-label="[[_computeAlwaysFloatLabel(alwaysFloatLabel,value)]]" disabled$="[[disabled]]" invalid="[[invalid]]">
+
+      <content select="[prefix]"></content>
+
+      <label hidden$="[[!label]]">[[label]]</label>
+
+      <div class="paper-input-input">[[value]]</div>
+
+      <content select="[suffix]"></content>
+
+      <template is="dom-if" if="[[errorMessage]]">
+        <paper-input-error>[[errorMessage]]</paper-input-error>
+      </template>
+
+    </paper-input-container>
+
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      Polymer({
+        is: 'paper-value',
+
+        behaviors: [
+          Polymer.PaperInputBehavior
+        ]
+      });
+    })();
+  </script>
+</dom-module>

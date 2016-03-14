@@ -1,0 +1,402 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/paper-styles/typography.html">
+
+<style is="custom-style">
+  /*
+   Polymer includes a shim for CSS Custom Properties that we can use for application theming.
+   Below, you'll find the default palette for the Polymer Starter Kit layout. Feel free to play
+   with changing the colors used or generate your own palette of colours at MaterialPalette.com.
+
+   See https://www.polymer-project.org/1.0/docs/devguide/styling.html#xscope-styling-details
+   for further information on custom CSS properties.
+   */
+
+  /* Application theme */
+
+  :root {
+    --primary-text-color: #212121;
+    --primary-background-color: #ffffff;
+    --secondary-text-color: #737373;
+    --disabled-text-color: #9b9b9b;
+    --divider-color: #dbdbdb;
+    --primary-color: #3f51b5;
+    --light-primary-color: #c5cae9;
+    --dark-primary-color: #303f9f;
+    --accent-color: #ff4081;
+    --light-accent-color: #ff80ab;
+    --dark-accent-color: #f50057;
+
+    /* Components */
+
+    /* paper-drawer-panel */
+    --drawer-menu-color: #ffffff;
+    --drawer-border-color: 1px solid #ccc;
+    --drawer-toolbar-border-color: 1px solid rgba(0, 0, 0, 0.22);
+
+    /* paper-menu */
+    --paper-menu-background-color: #fff;
+    --menu-link-color: #111111;
+  }
+
+  /* General styles */
+
+  /* @formatter:off */
+  body {
+    @apply(--layout-fullbleed);
+    @apply(--layout-vertical);
+  }
+
+  .space {
+    @apply(--layout-flex);
+  }
+
+  paper-header-panel /deep/ #mainContainer {
+    @apply(--layout-fullbleed);
+    @apply(--layout-vertical);
+
+  }
+  iron-pages, section {
+    @apply(--layout-fullbleed);
+    @apply(--layout-vertical);
+    @apply(--layout-flex);
+  }
+  /* @formatter:on */
+
+  .separator {
+    border-top: 1px solid rgba(0, 0, 0, 0.22);
+  }
+
+  .separator-bottom {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+  }
+
+  .or-bar {
+    line-height: 40px;
+    color: var(--disabled-text-color);
+  }
+
+  .or-text {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .separator-mid {
+    margin-top: 20px;
+    margin-left: 64px;
+    margin-right: 64px;
+    border-top: 1px solid rgba(0, 0, 0, 0.22);
+  }
+
+  paper-menu.main-menu {
+    padding: 0;
+  }
+
+  paper-item.menu-trigger {
+    cursor: pointer;
+  }
+
+  paper-menu.menu-content a {
+    padding-left: 16px;
+  }
+
+  paper-button.white {
+    background-color: white;
+  }
+
+  a.new {
+    color: var(--secondary-text-color);
+  }
+
+  a.draft {
+    font-style: italic;
+    color: var(--secondary-text-color);
+  }
+
+  #drawerToolbar {
+    color: var(--secondary-text-color);
+    background-color: var(--drawer-menu-color);
+    border-bottom: var(--drawer-toolbar-border-color);
+  }
+
+  #drawerToolbar .menu-name {
+    /* @formatter:off */
+    @apply(--paper-font-title);
+    /* @formatter:on */
+  }
+
+  paper-header-panel {
+    height: 100%;
+  }
+
+  /* @formatter:off */
+  paper-menu {
+    --paper-menu-selected-item: {
+      color: var(--primary-color);
+    };
+    --paper-menu-focused-item-after: {
+      background: var(--primary-color);
+    };
+  }
+  /* @formatter:on */
+
+  paper-menu.main-menu iron-icon {
+    margin-right: 33px;
+    opacity: 0.54;
+  }
+
+  paper-menu.main-menu a {
+    /* @formatter:off */
+    @apply(--layout-horizontal);
+    @apply(--layout-center);
+    /* @formatter:on */
+
+    text-decoration: none;
+    color: var(--menu-link-color);
+    font-family: 'Roboto', 'Noto', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 24px;
+    min-height: 48px;
+    padding: 0 16px;
+  }
+
+  #mainToolbar {
+    color: #fff;
+  }
+
+  #mainToolbar .app-name {
+    /* @formatter:off */
+    @apply(--paper-font-title);
+    /* @formatter:on */
+
+  }
+
+  /* Height of the scroll area
+  .content {
+    height: 900px;
+  }*/
+
+  /*body /deep/ paper-material {
+    border-radius: 2px;
+    height: 100%;
+    padding: 16px 0 16px 0;
+    width: calc(98.66% - 16px);
+    margin: 16px auto;
+    background: white;
+  }*/
+
+  iron-pages {
+    padding: 0 0 !important;
+  }
+
+  #toast .toast-hide-button {
+    color: #eeff41;
+    margin: 10px;
+  }
+
+  paper-menu.main-menu a {
+    padding: 0 0 0 0;
+  }
+
+  paper-menu.main-menu a /deep/ iron-icon {
+    margin-right: 16px;
+  }
+
+  section paper-menu {
+    background: #fafafa !important;
+  }
+
+  a paper-icon-button {
+    color: #fff;
+  }
+
+  paper-card {
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  component-list, document-view {
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  paper-button.action {
+    padding: 0.2em 0.5em;
+    font-size: 14px;
+  }
+
+  paper-button.red {
+    background-color: var(--paper-red-500);
+    color: white;
+  }
+
+  paper-button.blue {
+    background-color: var(--paper-blue-500);
+    color: white;
+  }
+
+  paper-button.green {
+    background-color: var(--paper-green-700);
+    color: white;
+  }
+
+  paper-card.contentCard {
+    padding: 32px;
+  }
+
+  .menuControls {
+    padding: 16px;
+  }
+
+  .fab-new {
+    position: absolute;
+    right: 32px;
+    bottom: 32px;
+    z-index: 2;
+  }
+
+  .fab-import {
+    position: absolute;
+    right: 32px;
+    bottom: 104px;
+    z-index: 2;
+  }
+
+  /* Breakpoints */
+
+  /* Small */
+  @media (max-width: 960px) {
+
+    #drawer .paper-toolbar {
+      margin-left: 16px;
+    }
+
+    #mainToolbar.tall .app-name {
+      font-size: 24px;
+      font-weight: 400;
+    }
+
+    /*body /deep/ paper-material {
+      --menu-container-display: none;
+      width: calc(97.33% - 32px);
+      padding-left: 16px;
+      padding-right: 16px;
+    }*/
+
+    body /deep/ paper-dialog {
+      width: 100%;
+    }
+
+  }
+
+  /* Tablet+ */
+  @media (min-width: 961px) {
+
+    #drawer.paper-drawer-panel > [drawer] {
+      border-right: 1px solid rgba(0, 0, 0, 0.14);
+    }
+
+    iron-pages {
+      padding: 24px 31px;
+    }
+
+    /*body /deep/ paper-material {
+      width: calc(98% - 46px);
+      margin-bottom: 32px;
+      padding-left: 30px;
+      padding-right: 30px;
+    }*/
+
+    body /deep/ paper-dialog {
+      width: 50%;
+    }
+
+  }
+
+  /* Material Design Adaptive Breakpoints */
+  /*
+    Below you'll find CSS media queries based on the breakpoint guidance
+    published by the Material Design team. You can choose to use, customise
+    or remove these breakpoints based on your needs.
+
+    http://www.google.com/design/spec/layout/adaptive-ui.html#adaptive-ui-breakpoints
+   */
+
+  /* mobile-small */
+  @media all and (min-width: 0) and (max-width: 360px) and (orientation: portrait) {
+  }
+
+  /* mobile-large */
+  @media all and (min-width: 361px) and (orientation: portrait) {
+  }
+
+  /* mobile-small-landscape */
+  @media all and (min-width: 0) and (max-width: 480px) and (orientation: landscape) {
+  }
+
+  /* mobile-large-landscape */
+  @media all and (min-width: 481px) and (orientation: landscape) {
+  }
+
+  /* tablet-small-landscape */
+  @media all and (min-width: 600px) and (max-width: 960px) and (orientation: landscape) {
+  }
+
+  /* tablet-large-landscape */
+  @media all and (min-width: 961px) and (orientation: landscape) {
+  }
+
+  /* tablet-small */
+  @media all and (min-width: 600px) and (orientation: portrait) {
+  }
+
+  /* tablet-large */
+  @media all and (min-width: 601px) and (max-width: 840px) and (orientation: portrait) {
+  }
+
+  /* desktop-x-small-landscape */
+  @media all and (min-width: 0) and (max-width: 480px) and (orientation: landscape) {
+  }
+
+  /* desktop-x-small */
+  @media all and (min-width: 0) and (max-width: 480px) and (max-aspect-ratio: 4/3) {
+  }
+
+  /* desktop-small-landscape */
+  @media all and (min-width: 481px) and (max-width: 840px) and (orientation: landscape) {
+  }
+
+  /* desktop-small */
+  @media all and (min-width: 481px) and (max-width: 840px) and (max-aspect-ratio: 4/3) {
+  }
+
+  /* desktop-medium-landscape */
+  @media all and (min-width: 841px) and (max-width: 1280px) and (orientation: landscape) {
+  }
+
+  /* desktop-medium */
+  @media all and (min-width: 841px) and (max-width: 1280px) and (max-aspect-ratio: 4/3) {
+  }
+
+  /* desktop-large */
+  @media all and (min-width: 1281px) and (max-width: 1600px) {
+  }
+
+  /* desktop-xlarge */
+  @media all and (min-width: 1601px) and (max-width: 1920px) {
+  }
+</style>

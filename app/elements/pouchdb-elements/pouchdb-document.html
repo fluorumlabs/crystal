@@ -1,0 +1,182 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="pouchdb.html">
+<link rel="import" href="pouchdb-behavior.html">
+
+<!--
+`pouchdb-document` provides a simple interface for working with PouchDB
+documents in a Polymer app.
+
+Example:
+
+    <pouchdb-document db-name="mydb" doc-id="dino-1" data="{{dinosaur}}">
+
+In this example, if the `dinosaur` object is data-bound elsewhere via Polymer's
+data-binding system, changes to the document will be automatically reflected in
+the remote document and any other clients referencing that document.
+-->
+
+<script>
+  Polymer({
+    is: 'pouchdb-document',
+
+    behaviors: [Polymer.PouchdbBehavior],
+
+    properties: {
+      /**
+       * The id of the corresponding document.
+       */
+      docId: {
+        type: String,
+        notify: true
+      },
+
+      /**
+       * The current revision of the document
+       */
+      rev: {
+        type: String,
+        notify: true
+      },
+
+      /**
+       * The `data` object for the corresponding document.
+       */
+      data: {
+        type: Object,
+        notify: true,
+        value: function() {
+          return {};
+        }
+      },
+
+      autoCreate: {
+        type: Boolean,
+        value: false
+      },
+
+      autoCommit: {
+        type: Boolean,
+        value: false
+      },
+
+      _receivingDbChanges: {
+        type: Boolean,
+        value: false
+      },
+
+      _puttingDbChanges: {
+        type: Boolean,
+        value: false
+      },
+
+      dirty: {
+        type: Boolean,
+        readOnly: true,
+        value: false,
+        notify: true
+      },
+      wasDirty: {
+        type: Boolean,
+        readOnly: true,
+        value: false,
+        notify: true
+      }
+    },
+
+    listeners: {
+      'pouchdb-update': '_onUpdate'
+    },
+
+    observers: [
+      '_docIdChanged(db, docId)',
+      '_dataChanged(db, data.*)'
+    ],
+
+    putData: function(data) {
+      this._puttingDbChanges = true;
+      return this.db.put(data, this.docId, data._rev).then(function(result) {
+        this.set('data._rev', result.rev);
+        this._setDirty(false);
+        this._setWasDirty(true);
+        this._puttingDbChanges = false;
+      }.bind(this)).catch(function(error) {
+        this._puttingDbChanges = false;
+        throw error;
+      }.bind(this));
+
+    },
+
+    delete: function() {
+      this._puttingDbChanges = true;
+      this.db.remove(this.data).then(function() {
+        this.set('docId', null);
+        this._setDirty(false);
+        this._setWasDirty(true);
+        this._puttingDbChanges = false;
+      }.bind(this)).catch(function(error) {
+        this._puttingDbChanges = false;
+        throw error;
+      }.bind(this));
+    },
+
+    commit: function() {
+      if (this.dirty) {
+        if (this.docId && !this._receivingDbChanges && !this._puttingDbChanges) {
+          this.putData(this.data, this.docId, this._rev);
+        }
+      }
+    },
+
+    rollback: function() {
+      if (this.dirty) {
+        this.db.get(this.docId, {}).then(function(data) {
+          this._updateFromDb(data);
+          this.set('changeOpts.doc_ids', [this.docId]);
+        }.bind(this));
+      }
+    },
+
+    _updateFromDb: function(data) {
+      this._receivingDbChanges = true;
+      this.set('data', data);
+      this.set('docId', data._id);
+      this.set('rev', data._rev);
+      this._setDirty(false);
+      this._setWasDirty(false);
+      this._receivingDbChanges = false;
+    },
+
+    _docIdChanged: function(db, docId, rev) {
+      if (!docId) {
+        this.set('data', {});
+        this.set('changeOps.doc_ids', null);
+        return;
+      }
+      var options = {};
+      if (rev) {
+        options.rev = rev;
+      }
+      db.get(docId, options).then(function(data) {
+        this._updateFromDb(data);
+        this.set('changeOpts.doc_ids', [this.docId]);
+      }.bind(this));
+    },
+
+    _dataChanged: function() {
+      this._setWasDirty(false);
+      this._setDirty(true);
+      if (this.autoCommit) {
+        if (this.docId && !this._receivingDbChanges && !this._puttingDbChanges) {
+          this.putData(this.data, this.docId, this._rev);
+        }
+      }
+    },
+
+    _onUpdate: function(info) {
+      if (info.id === this.docId) {
+        this._updateFromDb(info.data);
+      }
+    }
+
+  });
+</script>
