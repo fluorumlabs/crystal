@@ -224,14 +224,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 return this.draft && item.doc.stage === 'draft' ||
                   this.notReady && style === 'avatar red' ||
                   this.waiting && style === 'avatar blue' ||
-                  this.ready && (style === 'avatar orange' || style === 'avatar green') ||
+                  this.isReady && (style === 'avatar orange' || style === 'avatar green') ||
                   this.completed && item.doc.stage === 'finished';
               } else if (item.doc.type === 'sale') {
                 var style = this.getStyle(item);
                 return this.draft && item.doc.stage === 'draft' ||
                   this.notReady && style === 'avatar red' ||
                   this.waiting && style === 'avatar blue' ||
-                  this.ready && (style === 'avatar orange' || style === 'avatar green') ||
+                  this.isReady && (style === 'avatar orange' || style === 'avatar green') ||
                   this.completed && item.doc.stage === 'completed';
               }
 
