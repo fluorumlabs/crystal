@@ -124,7 +124,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </paper-card>
       <iron-list
-        items="[[getFilteredList(documents,state,draft,isReady,notReady,waiting,completed)]]"
+        items="[[getFilteredList(documents,state,draft,isReady,notReady,waiting,completed,documents.*)]]"
         as="item" class="flex">
         <template>
           <a data-route$="document-view-[[item.id]]"
