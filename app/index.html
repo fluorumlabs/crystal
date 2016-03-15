@@ -254,7 +254,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <span
           class="app-name">Balance: {{formatPrice(state.balance,2)}}</span>
         <iron-icon
-          icon="{{getSyncIcon(syncStatus,configuration.live)}}"></iron-icon>
+          icon="[[getSyncIcon(syncStatus,configuration.live)]]"></iron-icon>
         <!-- Toolbar icons -->
         <!--paper-icon-button icon="refresh"></paper-icon-button>
         <paper-icon-button icon="search"></paper-icon-button-->
@@ -273,17 +273,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           <section data-route="purchases">
             <document-list documents="{{purchases}}"
-                           state="{{state}}"></document-list>
+                           state="{{state}}"
+                           type="purchase"
+                           draft="{{configuration.purchaseDraft}}"
+                           waiting="{{configuration.purchasePlaced}}"
+                           completed="{{configuration.purchaseReceived}}"
+                           class="flex layout vertical"></document-list>
           </section>
 
           <section data-route="builds">
             <document-list documents="{{builds}}"
-                           state="{{state}}"></document-list>
+                           state="{{state}}"
+                           type="build"
+                           draft="{{configuration.buildDraft}}"
+                           is-ready="{{configuration.buildReady}}"
+                           not-ready="{{configuration.buildNotReady}}"
+                           waiting="{{configuration.buildWaiting}}"
+                           completed="{{configuration.buildFinished}}"
+                           class="flex layout vertical"></document-list>
           </section>
 
           <section data-route="sales">
             <document-list documents="{{sales}}"
-                           state="{{state}}"></document-list>
+                           state="{{state}}"
+                           type="sale"
+                           draft="{{configuration.saleDraft}}"
+                           is-ready="{{configuration.saleReady}}"
+                           not-ready="{{configuration.saleNotReady}}"
+                           waiting="{{configuration.saleWaiting}}"
+                           completed="{{configuration.saleFinished}}"
+                           class="flex layout vertical"></document-list>
           </section>
 
           <section data-route="document-view">

@@ -25,13 +25,27 @@
       } else if (status === 'denied' || status === 'error') {
         return 'notification:sync-error';
       } else {
-        return '';
+        return 'icons:check';
       }
     }
   };
 
   app.initializeConfiguration = function() {
-    app.configuration = {};
+    app.configuration = {
+      purchaseDraft: false,
+      purchasePlaced: false,
+      purchaseReceived: false,
+      buildDraft: false,
+      buildReady: false,
+      buildNotReady: false,
+      buildWaiting: false,
+      buildFinished: false,
+      saleDraft: false,
+      saleReady: false,
+      saleNotReady: false,
+      saleWaiting: false,
+      saleFinished: false
+    };
   };
 
   app.getServer = function(server, on) {

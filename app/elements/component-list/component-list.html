@@ -711,7 +711,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         },
         applySorting: function() {
-          if (!this.filteredComponentList) {
+          if (!this.filteredComponentList || !this.$.components.sortOrder) {
             return;
           }
           var sortOrder = this.$.components.sortOrder[0];

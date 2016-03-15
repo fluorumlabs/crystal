@@ -24,6 +24,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
 
+      paper-card {
+        width: 100%;
+      }
+
+      .card-actions {
+        padding-top: 16px;
+        padding-bottom: 16px;
+      }
+
+      .card-actions paper-button, .card-actions div, .card-actions paper-checkbox {
+        padding: 0.2em 0.5em;
+      }
+
       .avatar {
         display: inline-block;
         box-sizing: border-box;
@@ -70,13 +83,68 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-icon-item {
         border-bottom: 1px solid #DDD;
       }
-
-      paper-icon-item:hover {
-        background-color: #ddd;
-      }
     </style>
 
-    <template is="dom-repeat" items="[[documents]]" sort="sortFunc"
+    <div class="flex layout vertical">
+      <paper-card elevation="2">
+        <div class="card-actions item-padded layout horizontal">
+          <div>Show only:</div>
+          <paper-checkbox checked="{{draft}}">Draft</paper-checkbox>
+          <paper-checkbox checked="{{waiting}}"
+                          hidden="{{neq(type,'purchase')}}">Placed
+          </paper-checkbox>
+          <paper-checkbox checked="{{completed}}"
+                          hidden="{{neq(type,'purchase')}}">Received
+          </paper-checkbox>
+          <paper-checkbox checked="{{notReady}}"
+                          hidden="{{neq(type,'build')}}">Not enough components
+          </paper-checkbox>
+          <paper-checkbox checked="{{waiting}}"
+                          hidden="{{neq(type,'build')}}">Waiting for
+            components
+          </paper-checkbox>
+          <paper-checkbox checked="{{isReady}}"
+                          hidden="{{neq(type,'build')}}">Ready
+          </paper-checkbox>
+          <paper-checkbox checked="{{completed}}"
+                          hidden="{{neq(type,'build')}}">Finished
+          </paper-checkbox>
+          <paper-checkbox checked="{{notReady}}"
+                          hidden="{{neq(type,'sale')}}">Not enough components
+          </paper-checkbox>
+          <paper-checkbox checked="{{waiting}}"
+                          hidden="{{neq(type,'sale')}}">Waiting for components
+          </paper-checkbox>
+          <paper-checkbox checked="{{isReady}}"
+                          hidden="{{neq(type,'sale')}}">Accepted
+          </paper-checkbox>
+          <paper-checkbox checked="{{completed}}"
+                          hidden="{{neq(type,'sale')}}">Completed
+          </paper-checkbox>
+        </div>
+      </paper-card>
+      <iron-list
+        items="[[getFilteredList(documents,state,draft,isReady,notReady,waiting,completed)]]"
+        as="item" class="flex">
+        <template>
+          <a data-route$="document-view-[[item.id]]"
+             href="{{baseUrl}}document/{{item.id}}"
+             class="paper-item-link">
+            <paper-icon-item>
+              <div class$="[[getStyle(item,item.doc.stage,state.*)]]" item-icon>
+                <iron-icon icon="[[getIcon(item,item.doc.stage)]]"></iron-icon>
+              </div>
+              <paper-item-body two-line>
+                <div>[[getTitle(item,item.doc.name)]]</div>
+                <div secondary>[[getDate(item,item.doc.dateStatusChange)]]</div>
+              </paper-item-body>
+            </paper-icon-item>
+          </a>
+        </template>
+      </iron-list>
+    </div>
+
+    <!--template is="dom-repeat" items="[[documents]]" sort="sortFunc"
               observe="doc.dateStatusChange">
       <a data-route$="document-view-[[item.id]]"
          href="{{baseUrl}}document/{{item.id}}"
@@ -91,7 +159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-item-body>
         </paper-icon-item>
       </a>
-    </template>
+    </template-->
   </template>
 
   <script>
@@ -109,7 +177,68 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           state: {
             type: Object,
             notify: true
+          },
+          type: {
+            type: String,
+            notify: true
+          },
+          draft: {
+            type: Boolean,
+            notify: true
+          },
+          isReady: {
+            type: Boolean,
+            notify: true
+          },
+          notReady: {
+            type: Boolean,
+            notify: true
+          },
+          waiting: {
+            type: Boolean,
+            notify: true
+          },
+          completed: {
+            type: Boolean,
+            notify: true
           }
+        },
+        eq: function(var1, var2) {
+          return var1 === var2;
+        },
+        neq: function(var1, var2) {
+          return (var1 !== var2);
+        },
+        getFilteredList: function(items) {
+          var showAll = !this.draft && !this.isReady && !this.notReady && !this.waiting && !this.completed;
+          var filteredList = items.filter(function(item) {
+            if (showAll) {
+              return true;
+            } else {
+              if (item.doc.type === 'purchase') {
+                return this.draft && item.doc.stage === 'draft' ||
+                  this.waiting && item.doc.stage === 'placed' ||
+                  this.completed && item.doc.stage === 'received';
+              } else if (item.doc.type === 'build') {
+                var style = this.getStyle(item);
+                return this.draft && item.doc.stage === 'draft' ||
+                  this.notReady && style === 'avatar red' ||
+                  this.waiting && style === 'avatar blue' ||
+                  this.ready && (style === 'avatar orange' || style === 'avatar green') ||
+                  this.completed && item.doc.stage === 'finished';
+              } else if (item.doc.type === 'sale') {
+                var style = this.getStyle(item);
+                return this.draft && item.doc.stage === 'draft' ||
+                  this.notReady && style === 'avatar red' ||
+                  this.waiting && style === 'avatar blue' ||
+                  this.ready && (style === 'avatar orange' || style === 'avatar green') ||
+                  this.completed && item.doc.stage === 'completed';
+              }
+
+            }
+          }.bind(this));
+          filteredList.sort(this.sortFunc);
+          return filteredList;
         },
         sortFunc: function(item1, item2) {
           return (item2.doc.dateDraft || 0) - (item1.doc.dateDraft || 0);
