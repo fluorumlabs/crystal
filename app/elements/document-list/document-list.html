@@ -34,7 +34,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       .card-actions paper-button, .card-actions div, .card-actions paper-checkbox {
-        padding: 0.2em 0.5em;
+        padding: 9px 0.5em 0.2em;
       }
 
       .avatar {
@@ -88,6 +88,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="flex layout vertical">
       <paper-card elevation="2">
         <div class="card-actions item-padded layout horizontal">
+          <paper-input label="Filter (Components)" class="flex" no-label-float
+                       value="{{filterValue}}"></paper-input>
+
+          <poly-filter id="filterer"
+                       filter="[[filterValue]]"
+                       array-to-filter="[[getFilteredList(documents,state,draft,isReady,notReady,waiting,completed,documents.*)]]"
+                       filtered-array="{{filteredList}}"
+                       filter-by="$components">
+          </poly-filter>
+
           <div>Show only:</div>
           <paper-checkbox checked="{{draft}}">Draft</paper-checkbox>
           <paper-checkbox checked="{{waiting}}"
@@ -124,7 +134,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
       </paper-card>
       <iron-list
-        items="[[getFilteredList(documents,state,draft,isReady,notReady,waiting,completed,documents.*)]]"
+        items="{{filteredList}}"
         as="item" class="flex">
         <template>
           <a data-route$="document-view-[[item.id]]"
@@ -237,6 +247,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
             }
           }.bind(this));
+          filteredList.forEach(function(item) {
+            var components = '';
+            item.doc.items.forEach(function(entry) {
+              if (entry.componentName) {
+                components = components + ' ' + entry.componentName;
+              }
+            });
+            item.$components = components;
+          });
           filteredList.sort(this.sortFunc);
           return filteredList;
         },
