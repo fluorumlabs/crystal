@@ -948,13 +948,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               this._set('editingItem.qty', null);
             }
           } else if (parameter === 'qty' && this.document.type === 'purchase') {
-            if (!value) {
+            if (!value && !this.editingItem.vendor) {
               this._set('editingItem.unitPrice', null);
               this._set('editingItem.totalPrice', null);
             } else {
-              if (this.editingItem.unitPrice) {
-                this._set('editingItem.totalPrice',
-                  Number(this.editingItem.unitPrice) * Number(value));
+              if (!this.editingItem.vendor) {
+                if (this.editingItem.unitPrice) {
+                  this._set('editingItem.totalPrice',
+                    Number(this.editingItem.unitPrice) * Number(value));
+                }
+              } else {
+                if (this.editingItem.totalPrice) {
+                  this._set('editingItem.unitPrice',
+                    Number(this.editingItem.totalPrice) / Number(value));
+                }
               }
             }
           } else if (parameter === 'unitPrice' && this.document.type === 'purchase') {
