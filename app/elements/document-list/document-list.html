@@ -220,24 +220,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return (var1 !== var2);
         },
         getFilteredList: function(items) {
-          var showAll = !this.draft && !this.isReady && !this.notReady && !this.waiting && !this.completed;
+          var showAll =
+            !(this.draft || this.isReady || this.notReady || this.waiting || this.completed);
           var filteredList = items.filter(function(item) {
             if (showAll) {
               return true;
             } else {
+              var style;
               if (item.doc.type === 'purchase') {
                 return this.draft && item.doc.stage === 'draft' ||
                   this.waiting && item.doc.stage === 'placed' ||
                   this.completed && item.doc.stage === 'received';
               } else if (item.doc.type === 'build') {
-                var style = this.getStyle(item);
+                style = this.getStyle(item);
                 return this.draft && item.doc.stage === 'draft' ||
                   this.notReady && style === 'avatar red' ||
                   this.waiting && style === 'avatar blue' ||
                   this.isReady && (style === 'avatar orange' || style === 'avatar green') ||
                   this.completed && item.doc.stage === 'finished';
               } else if (item.doc.type === 'sale') {
-                var style = this.getStyle(item);
+                style = this.getStyle(item);
                 return this.draft && item.doc.stage === 'draft' ||
                   this.notReady && style === 'avatar red' ||
                   this.waiting && style === 'avatar blue' ||
