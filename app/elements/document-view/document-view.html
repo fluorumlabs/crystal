@@ -190,7 +190,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                           hidden="{{documentNot(document.type,'build',document.stage,'draft')}}"></vaadin-combo-box>
         <paper-input class="flex" type="number" label="Payed amount"
                      value="{{document.totalPayed}}"
-                     disabled="{{eq(document.stage,'draft')}}"
                      readonly="{{eq(document.stage,'received')}}"
                      hidden="{{neq(document.type,'purchase')}}"></paper-input>
         <paper-input class="flex" type="number" label="Shipping cost"
