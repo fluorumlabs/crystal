@@ -151,7 +151,8 @@ same performance concerns as in CouchDB apply. Instead, use `startkey` and
       ],
 
       listeners: {
-        'pouchdb-update': '_onPouchUpdate',
+        /*'pouchdb-update': '_onPouchUpdate',*/
+        'pouchdb-update': '_updateResults',
         'pouchdb-delete': '_updateResults',
         'pouchdb-create': '_updateResults'
       },
