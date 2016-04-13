@@ -250,7 +250,7 @@
         app.state[c].price = '';
       }
     });
-    app.set('state.balance', (app.state.balance || 0) + total * z);
+    app.set('state.balance', (app.state.balance || 0) + (document.totalPayed || 0) * z);
   };
 
   app.createMissingComponents = function(doc) {
